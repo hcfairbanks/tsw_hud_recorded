@@ -1,0 +1,43 @@
+
+**************************************************
+The game appears to be showing the distance
+as the crow flys and not account for the
+curvature of the track
+
+I ran an experiment to prove this and yes Iam calculating
+for the curvature of the track and the game isn't
+
+// EXPERIMENT: Using straight-line distance instead of track distance
+const distance = calculateDistanceAlongRoute(
+//const distance = calculateDistance(
+
+this may be occasionally why I have thought that the end point snuck up on me
+it didn't, it's that as I get closer the curvature matters less and Iam guessing the
+rounding is more jaring
+
+********************************************************************************
+in km messuring it apears to be round by 500m
+so 20.5km apears as 21 km 
+but 20.4 km appears as 20
+
+not all switches are on the map
+some switches can not be changed in freeroam by
+createing a route for the train in the gui
+
+**************************************************
+
+London Euston Platform 8 => Euston 8
+    "latitude": 51.529624452648747,
+    "longitude": -0.13507485466163827
+Watford Junction 8 => Watford Jn 8
+      "latitude": 51.664659207208139,
+      "longitude": -0.39693133082777177
+Hemel Hempstead 3
+    "latitude": 51.742451119030363,
+    "longitude": -0.49168557190993445
+
+Tring 4
+    "latitude": 51.80039482156387,
+    "longitude": -0.6219929313733159
+
+ 

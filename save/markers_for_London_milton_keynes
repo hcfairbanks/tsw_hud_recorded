@@ -1,0 +1,268 @@
+  "markers": [
+    {
+      "stationName": "London Euston",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.530065147791184,
+      "longitude": -0.13589734620468252
+    },
+    {
+      "stationName": "South Hampstead",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.54135944334653,
+      "longitude": -0.17805460708529544
+    },
+    {
+      "stationName": "Kilburn High Road",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.537266285927736,
+      "longitude": -0.19208568127368125
+    },
+    {
+      "stationName": "Queens Park",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.533596256217756,
+      "longitude": -0.2065229600042097
+    },
+    {
+      "stationName": "Kensal Green",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.53058729462248,
+      "longitude": -0.22328832591679504
+    },
+    {
+      "stationName": "Euston 8",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.53015163551912,
+      "longitude": -0.13609777488444758
+    },
+    {
+      "stationName": "Park Village Tunnel Line C",
+      "markerType": "Tunnel",
+      "isTimetableStation": false,
+      "latitude": 51.537264698328826,
+      "longitude": -0.1465875427646702
+    },
+    {
+      "stationName": "Primrose Hill Tunnel Down DC Line",
+      "markerType": "Tunnel",
+      "isTimetableStation": false,
+      "latitude": 51.541473238141506,
+      "longitude": -0.17701507163083247
+    },
+    {
+      "stationName": "South Hampstead 2",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.54114803999488,
+      "longitude": -0.17977818799947115
+    },
+    {
+      "stationName": "Kilburn High Road 2",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.537266285927736,
+      "longitude": -0.19208568127368125
+    },
+    {
+      "stationName": "Queen's Park 4",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.533596256217756,
+      "longitude": -0.2065229600042097
+    },
+    {
+      "stationName": "Kensal Green 2",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.53043085670048,
+      "longitude": -0.2250852321431074
+    },
+    {
+      "stationName": "Kensal Green Tunnel Down Electric",
+      "markerType": "Tunnel",
+      "isTimetableStation": false,
+      "latitude": 51.53015433051436,
+      "longitude": -0.2293800563600735
+    },
+    {
+      "stationName": "Willesden Junction",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.531783784063904,
+      "longitude": -0.24450838090644772
+    },
+    {
+      "stationName": "Willesden Junction 3",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.531783784063904,
+      "longitude": -0.24450838090644772
+    },
+    {
+      "stationName": "Primrose Hill Tunnel Down Slow Line",
+      "markerType": "Tunnel",
+      "isTimetableStation": false,
+      "latitude": 51.54145508749769,
+      "longitude": -0.1771884881595587
+    },
+    {
+      "stationName": "Queen's Park 6",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.53341629338672,
+      "longitude": -0.2075282412007694
+    },
+    {
+      "stationName": "Kensal Green Tunnel Down Slow",
+      "markerType": "Tunnel",
+      "isTimetableStation": false,
+      "latitude": 51.53014396176691,
+      "longitude": -0.2295618315778286
+    },
+    {
+      "stationName": "Wembley Central Platform 5",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.55255141115895,
+      "longitude": -0.29661297953431415
+    },
+    {
+      "stationName": "Harrow & Wealdstone",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.59138722186131,
+      "longitude": -0.3327595935143894
+    },
+    {
+      "stationName": "Harrow & Wealdstone 5",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.59138722186131,
+      "longitude": -0.3327595935143894
+    },
+    {
+      "stationName": "Bushey",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.64336177285229,
+      "longitude": -0.38544966033785455
+    },
+    {
+      "stationName": "Bushey 5",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.64336177285229,
+      "longitude": -0.38544966033785455
+    },
+    {
+      "stationName": "Watford Junction",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.66318712252719,
+      "longitude": -0.395033416034663
+    },
+    {
+      "stationName": "Watford Jn 8",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.66318712252719,
+      "longitude": -0.395033416034663
+    },
+    {
+      "stationName": "Watford Tunnel Down Slow",
+      "markerType": "Tunnel",
+      "isTimetableStation": false,
+      "latitude": 51.675309557219954,
+      "longitude": -0.409502379675991
+    },
+    {
+      "stationName": "Kings Langley",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.70529660504502,
+      "longitude": -0.4375704825606643
+    },
+    {
+      "stationName": "Kings Langley 3",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.70529660504502,
+      "longitude": -0.4375704825606643
+    },
+    {
+      "stationName": "Apsley",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.73157292345912,
+      "longitude": -0.4615212827797142
+    },
+    {
+      "stationName": "Apsley 3",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.73157292345912,
+      "longitude": -0.4615212827797142
+    },
+    {
+      "stationName": "Hemel Hempstead",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.74202064840316,
+      "longitude": -0.48967710978622286
+    },
+    {
+      "stationName": "Hemel Hempstead 3",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.74275279387967,
+      "longitude": -0.4930931303114862
+    },
+    {
+      "stationName": "Berkhamsted",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.763523205703635,
+      "longitude": -0.5621884057312343
+    },
+    {
+      "stationName": "Berkhamsted 3",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.763523205703635,
+      "longitude": -0.5621884057312343
+    },
+    {
+      "stationName": "Northchurch Tunnel Down Slow",
+      "markerType": "Tunnel",
+      "isTimetableStation": false,
+      "latitude": 51.770441159266916,
+      "longitude": -0.5836211760016661
+    },
+    {
+      "stationName": "Tring",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.79846678343984,
+      "longitude": -0.6202834062265181
+    },
+    {
+      "stationName": "Tring 3",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.79846678343984,
+      "longitude": -0.6202834062265181
+    },
+    {
+      "stationName": "Tring 4",
+      "markerType": "Platform",
+      "isTimetableStation": false,
+      "latitude": 51.800394817952316,
+      "longitude": -0.6219929231489676
+    }
+  ]

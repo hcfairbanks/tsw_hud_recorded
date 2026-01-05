@@ -1,0 +1,42 @@
+======================================================================
+File: Screenshot 2026-01-02 001459.png (SERVICE NAME)
+======================================================================
+2010-02 - Stonebridge Park to Harrow & Wealdstone 05:14 00:17
+
+
+
+======================================================================
+File: Screenshot 2026-01-02 001559.png
+======================================================================
+Cs
+WAIT FOR SERVICE Service is scheduled to start at 05:14:30
+
+
+
+======================================================================
+File: Screenshot 2026-01-02 002459.png
+======================================================================
+201D-02 - Stonebridge Park to Harrow & Wealdstone +» @D
+LOAD PASSENGERS +05:15:30 -
+STOP AT LOCATION Wembley Central Platform 1 - 05:18:00 +05:18:00 -
+LOAD PASSENGERS +05:18:30 -
+STOP AT LOCATION North Wembley Platform 2 - 05:20:01 +05:20:01 -
+LOAD PASSENGERS +05:20:11 -
+STOP AT LOCATION South Kenton Platform 2 - 05:21:27 +05:21:2 -
+LOAD PASSENGERS +05:21:31 -
+STOP AT LOCATION Kenton Platform 2 - 05:23:15 +05:23:15 -
+LOAD PASSENGERS +05:23:25 -
+STOP AT LOCATION Harrow & Wealdstone Platform 1 - 05:30:30 +05:30:30 -
+UNLOAD PASSENGERS +05:30:40 -
+
+
+
+======================================================================
+File: Screenshot 2026-01-02 002509.png
+======================================================================
+LOAD PASSENGERS +05:23:25 -
+STOP AT LOCATION Harrow & Wealdstone Platform 1 - 05:30:30 +05:30:30 -
+UNLOAD PASSENGERS +05:30:40 -
+STOP AT LOCATION Harrow & Wealdstone Centre Siding R _
+
+

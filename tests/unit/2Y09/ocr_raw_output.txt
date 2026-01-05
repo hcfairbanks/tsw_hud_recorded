@@ -1,0 +1,44 @@
+======================================================================
+File: Screenshot 2026-01-02 225751.png (SERVICE NAME)
+======================================================================
+2Y08: London Euston - Birmingham New Street 05:33 01:06
+
+
+
+======================================================================
+File: Screenshot 2026-01-02 225828.png
+======================================================================
+WAIT FOR SERVICE Service is scheduled to start at 05:33:00
+
+
+
+======================================================================
+File: Screenshot 2026-01-02 225839.png
+======================================================================
+LOAD PASSENGERS +05:35:00
+STOP AT LOCATION Harrow & Wealdstone Platform 5 - 05:47:30 +05:47:30
+LOAD PASSENGERS +05:48:00
+STOP AT LOCATION Watford Junction Platform 8 - 05:54:30 +05:54:30
+LOAD PASSENGERS +05:55:00
+STOP AT LOCATION Kings Langley Platform 3 - 05:59:30 +05:59:30
+LOAD PASSENGERS +06:00:00
+STOP AT LOCATION Apsley Platform 3 - 06:03:30 +06:03:30
+LOAD PASSENGERS +06:04:00
+STOP AT LOCATION Hemel Hempstead Platform 3 - 06:06:30 +06:06:30
+LOAD PASSENGERS +06:07:00
+
+
+
+======================================================================
+File: Screenshot 2026-01-02 225854.png
+======================================================================
+STOP AT LOCATION Berkhamsted Platform 3 - 06:11:30 +06:11:30
+LOAD PASSENGERS +06:12:00
+STOP AT LOCATION Leighton Buzzard Platform 3 - 06:26:30 +06:26:30
+LOAD PASSENGERS +06:27:00
+STOP AT LOCATION Bletchley Platform 3 - 06:33:30 +06:33:30
+LOAD PASSENGERS +06:34:00
+STOP AT LOCATION Milton Keynes Central Platform 3 - 06:39:30 +06:39:30
+LOAD PASSENGERS -
+
+

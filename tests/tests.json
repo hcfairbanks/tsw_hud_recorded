@@ -1,0 +1,144 @@
+{
+  "tests": [
+    {
+      "id": 1,
+      "timetable": "201D-02",
+      "description": "No arguments (uses OCR service name)",
+      "command": "",
+      "images": "201D-02"
+    },
+    {
+      "id": 2,
+      "timetable": "201D-02",
+      "description": "With platform only",
+      "command": "2",
+      "images": "201D-02"
+    },
+    {
+      "id": 3,
+      "timetable": "201D-02",
+      "description": "With platform and destination",
+      "command": "3 \"Stonebridge Park\"",
+      "images": "201D-02"
+    },
+    {
+      "id": 4,
+      "timetable": "201D-02",
+      "description": "With platform, destination, and custom filename",
+      "command": "4 \"Stonebridge Park\" \"201D-02 - Stonebridge Park to Harrow & Wealdstone 0514 0017\"",
+      "images": "201D-02"
+    },
+    {
+      "id": 5,
+      "timetable": "221D-15",
+      "description": "No arguments (uses OCR service name)",
+      "command": "",
+      "images": "221D-15"
+    },
+    {
+      "id": 6,
+      "timetable": "221D-15",
+      "description": "With platform only",
+      "command": "2",
+      "images": "221D-15"
+    },
+    {
+      "id": 7,
+      "timetable": "221D-15",
+      "description": "With platform and destination",
+      "command": "3 \"Stonebridge Park\"",
+      "images": "221D-15"
+    },
+    {
+      "id": 8,
+      "timetable": "221D-15",
+      "description": "With platform, destination, and custom filename",
+      "command": "4 \"Stonebridge Park\" \"221D-15 - Stonebridge Park to Elephant & Castle 1418 0017\"",
+      "images": "221D-15"
+    },
+    {
+      "id": 9,
+      "timetable": "2N04",
+      "description": "No arguments (uses OCR service name)",
+      "command": "",
+      "images": "2N04"
+    },
+    {
+      "id": 10,
+      "timetable": "2N04",
+      "description": "With platform only",
+      "command": "2",
+      "images": "2N04"
+    },
+    {
+      "id": 11,
+      "timetable": "2N04",
+      "description": "With platform and destination",
+      "command": "3 \"Milton Keynes Test\"",
+      "images": "2N04"
+    },
+    {
+      "id": 12,
+      "timetable": "2N04",
+      "description": "With platform, destination, and custom filename",
+      "command": "4 \"Milton Keynes Test\" \"2N04 Milton Keynes Test - London Euston 0518 0113\"",
+      "images": "2N04"
+    },
+    {
+      "id": 13,
+      "timetable": "2Y09",
+      "description": "No arguments (uses OCR service name)",
+      "command": "",
+      "images": "2Y09"
+    },
+    {
+      "id": 14,
+      "timetable": "2Y09",
+      "description": "With platform only",
+      "command": "2",
+      "images": "2Y09"
+    },
+    {
+      "id": 15,
+      "timetable": "2Y09",
+      "description": "With platform and destination",
+      "command": "3 \"London Euston Test\"",
+      "images": "2Y09"
+    },
+    {
+      "id": 16,
+      "timetable": "2Y09",
+      "description": "With formatted service name override",
+      "command": "4 \"London Euston Test\" \"2Y09 London Euston - Birmingham New Street 0533 0106\"",
+      "images": "2Y09"
+    },
+    {
+      "id": 17,
+      "timetable": "741-06",
+      "description": "No arguments (uses OCR service name)",
+      "command": "",
+      "images": "741-06"
+    },
+    {
+      "id": 18,
+      "timetable": "741-06",
+      "description": "With platform only",
+      "command": "2",
+      "images": "741-06"
+    },
+    {
+      "id": 19,
+      "timetable": "741-06",
+      "description": "With platform and destination",
+      "command": "3 \"Kilburn High Road\"",
+      "images": "741-06"
+    },
+    {
+      "id": 20,
+      "timetable": "741-06",
+      "description": "With platform, destination, and custom filename",
+      "command": "4 \"Kilburn High Road\" \"741-06 - Kilburn High Road to Harrow & Wealdstone 0145 0025\"",
+      "images": "741-06"
+    }
+  ]
+}

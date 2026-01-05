@@ -1,0 +1,14 @@
+Departure
+Origin
+PI. ( Platform Indicator )
+ServiceDestination
+ID
+TOC (Train Operating Company)
+Type
+
+
+
+Destination
+Arrival
+Departure
+Platform

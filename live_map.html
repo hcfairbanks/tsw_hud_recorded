@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Train Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 300px;
+        }
+        .info-panel h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .info-item {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #666;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .status-connected {
+            background-color: #00cc66;
+        }
+        .status-disconnected {
+            background-color: #ff0000;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div class="info-panel">
+        <h3>Live Train Tracker</h3>
+        <div class="info-item">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="connectionStatus">Connecting...</span>
+        </div>
+        <div class="info-item"><span class="info-label">Route:</span> <span id="routeName">-</span></div>
+        <div class="info-item"><span class="info-label">Speed:</span> <span id="speed">-</span> km/h</div>
+        <div class="info-item"><span class="info-label">Direction:</span> <span id="direction">-</span></div>
+        <div class="info-item"><span class="info-label">Total Points:</span> <span id="totalPoints">0</span></div>
+        <div class="info-item"><span class="info-label">Total Markers:</span> <span id="totalMarkers">0</span></div>
+        <div class="info-item"><span class="info-label">Current Position:</span><br>
+            <span style="font-size: 11px;">
+                Lat: <span id="currentLat">-</span><br>
+                Lng: <span id="currentLng">-</span>
+            </span>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize the map (centered on UK)
+        const map = L.map('map').setView([52.0, -0.5], 10);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Store path coordinates
+        let pathCoordinates = [];
+        let pathPolyline = null;
+        let trainMarker = null;
+        let markerCircles = [];
+        let stationMarkers = new Map(); // Track timetable station markers
+        let firstPosition = true;
+
+        // Create custom train icon
+        const trainIcon = L.divIcon({
+            className: 'train-icon',
+            html: '<div style="background: #0066ff; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>',
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
+        });
+
+        // Direction mapping
+        const directionMap = {
+            '-1': 'Reverse',
+            '0': 'Neutral',
+            '1': 'Forward'
+        };
+
+        // Connect to Server-Sent Events stream
+        const eventSource = new EventSource('/stream');
+
+        eventSource.onopen = () => {
+            console.log('Connected to stream');
+            document.getElementById('connectionStatus').textContent = 'Connected';
+            document.getElementById('statusIndicator').className = 'status-indicator status-connected';
+        };
+
+        eventSource.onerror = () => {
+            console.log('Connection lost');
+            document.getElementById('connectionStatus').textContent = 'Disconnected';
+            document.getElementById('statusIndicator').className = 'status-indicator status-disconnected';
+        };
+
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            // Update speed and direction
+            document.getElementById('speed').textContent = data.speed || 0;
+            document.getElementById('direction').textContent = directionMap[data.direction] || 'Unknown';
+
+            // Check if we have GPS data in the raw response
+            if (data.raw && data.raw.Entries) {
+                for (const entry of data.raw.Entries) {
+                    // Get GPS coordinates from PlayerInfo
+                    if (entry.Path === 'DriverAid.PlayerInfo' && entry.NodeValid && entry.Values) {
+                        const geoLocation = entry.Values.geoLocation;
+                        if (geoLocation && geoLocation.latitude && geoLocation.longitude) {
+                            const lat = geoLocation.latitude;
+                            const lng = geoLocation.longitude;
+
+                            // Update current position display
+                            document.getElementById('currentLat').textContent = lat.toFixed(6);
+                            document.getElementById('currentLng').textContent = lng.toFixed(6);
+
+                            // Add to path if different from last position
+                            if (pathCoordinates.length === 0 || 
+                                pathCoordinates[pathCoordinates.length - 1][0] !== lat ||
+                                pathCoordinates[pathCoordinates.length - 1][1] !== lng) {
+                                
+                                pathCoordinates.push([lat, lng]);
+                                document.getElementById('totalPoints').textContent = pathCoordinates.length;
+
+                                // Update or create path polyline
+                                if (pathPolyline) {
+                                    pathPolyline.setLatLngs(pathCoordinates);
+                                } else {
+                                    pathPolyline = L.polyline(pathCoordinates, {
+                                        color: '#0066ff',
+                                        weight: 4,
+                                        opacity: 0.7
+                                    }).addTo(map);
+                                }
+                            }
+
+                            // Update train marker position
+                            if (trainMarker) {
+                                trainMarker.setLatLng([lat, lng]);
+                            } else {
+                                trainMarker = L.marker([lat, lng], { icon: trainIcon })
+                                    .bindPopup('Current Position')
+                                    .addTo(map);
+                            }
+
+                            // Center map on train position (first time only)
+                            if (firstPosition) {
+                                map.setView([lat, lng], 15);
+                                firstPosition = false;
+                            }
+                            // User can now freely pan the map without auto-centering
+                        }
+                    }
+
+                    // Process TrackData for markers
+                    if (entry.Path === 'DriverAid.TrackData' && entry.NodeValid && entry.Values) {
+                        // Process stations
+                        if (entry.Values.stations && Array.isArray(entry.Values.stations)) {
+                            entry.Values.stations.forEach(station => {
+                                const markerName = station.stationName || station.markerName;
+                                const distanceCM = station.distanceToStationCM;
+                                const distanceMeters = distanceCM / 100;
+
+                                if (markerName && !stationMarkers.has(markerName) && distanceMeters < 10000) {
+                                    // Get current player position
+                                    const playerEntry = data.raw.Entries.find(e => e.Path === 'DriverAid.PlayerInfo');
+                                    if (playerEntry && playerEntry.Values && playerEntry.Values.geoLocation) {
+                                        const lat = playerEntry.Values.geoLocation.latitude;
+                                        const lng = playerEntry.Values.geoLocation.longitude;
+
+                                        // Add marker ahead of current position
+                                        const marker = L.circleMarker([lat, lng], {
+                                            radius: 6,
+                                            fillColor: '#ff6b6b',
+                                            color: '#fff',
+                                            weight: 2,
+                                            opacity: 1,
+                                            fillOpacity: 0.8
+                                        }).bindPopup(`
+                                            <strong>${markerName}</strong><br>
+                                            ${distanceMeters.toFixed(0)} meters ahead
+                                        `).addTo(map);
+
+                                        stationMarkers.set(markerName, marker);
+                                        markerCircles.push(marker);
+                                        document.getElementById('totalMarkers').textContent = markerCircles.length;
+                                    }
+                                }
+                            });
+                        }
+
+                        // Process markers
+                        if (entry.Values.markers && Array.isArray(entry.Values.markers)) {
+                            entry.Values.markers.forEach(marker => {
+                                const markerName = marker.stationName || marker.markerName;
+                                const distanceCM = marker.distanceToStationCM;
+                                const distanceMeters = distanceCM / 100;
+
+                                if (markerName && !stationMarkers.has(markerName) && distanceMeters < 10000) {
+                                    // Get current player position
+                                    const playerEntry = data.raw.Entries.find(e => e.Path === 'DriverAid.PlayerInfo');
+                                    if (playerEntry && playerEntry.Values && playerEntry.Values.geoLocation) {
+                                        const lat = playerEntry.Values.geoLocation.latitude;
+                                        const lng = playerEntry.Values.geoLocation.longitude;
+
+                                        // Add marker ahead of current position
+                                        const markerObj = L.circleMarker([lat, lng], {
+                                            radius: 5,
+                                            fillColor: '#4ecdc4',
+                                            color: '#fff',
+                                            weight: 2,
+                                            opacity: 1,
+                                            fillOpacity: 0.8
+                                        }).bindPopup(`
+                                            <strong>${markerName}</strong><br>
+                                            ${distanceMeters.toFixed(0)} meters ahead
+                                        `).addTo(map);
+
+                                        stationMarkers.set(markerName, markerObj);
+                                        markerCircles.push(markerObj);
+                                        document.getElementById('totalMarkers').textContent = markerCircles.length;
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+
+            // Update route name if available
+            if (data.timetableLabel) {
+                document.getElementById('routeName').textContent = data.timetableLabel;
+            }
+        };
+    </script>
+</body>
+</html>

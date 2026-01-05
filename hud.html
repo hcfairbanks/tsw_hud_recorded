@@ -1,0 +1,796 @@
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TSW HUD DASHBOARD</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: black;
+            overflow: hidden;
+        }
+        #container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-start;
+            padding-top: 0;
+        }
+        #tutorial {
+            max-width: 100%;
+            max-height: calc(100vh - 150px);
+            width: auto;
+            height: auto;
+        }
+        #display {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            max-height: 140px;
+            overflow-y: auto;
+            background-color: black;
+            color: white;
+            padding: 10px;
+            border: 1px solid #ccc;
+            font-family: monospace;
+            white-space: pre;
+            font-size: 10px;
+            display: none;
+        }
+        #toggleRawData {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: black;
+            color: white;
+            border: 3px solid white;
+            padding: 8px 16px;
+            font-family: sans-serif;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        #toggleRawData:hover {
+            background-color: #1a1a1a;
+        }
+        .data-box {
+            position: fixed;
+            right: 10px;
+            background-color: white;
+            padding: 10px;
+            border: 2px solid #333;
+            font-family: Arial, sans-serif;
+            min-width: 120px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+        }
+        .data-box-label {
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 3px;
+        }
+        .data-box-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #000;
+        }
+        #speedLimitBox { top: 10px; }
+        #powerHandleBox { top: 80px; }
+        #gradientBox { top: 140px; }
+        
+        @media (min-width: 1200px) {
+            .data-box {
+                padding: 15px;
+                min-width: 150px;
+            }
+            .data-box-label {
+                font-size: 12px;
+                margin-bottom: 5px;
+            }
+            .data-box-value {
+                font-size: 24px;
+            }
+            #display {
+                font-size: 12px;
+            }
+        }
+    </style>
+    <script>
+
+// Global variable to track flashing state
+var flashState = false;
+setInterval(function() {
+    flashState = !flashState;
+}, 500); // Toggle every 500ms
+
+function degToRad(angle) {
+    return ((angle * Math.PI) / 180);
+}
+
+function radToDeg(angle) {
+    return ((angle * 180) / Math.PI);
+}
+
+function drawLine(options, line) {
+    options.ctx.beginPath();
+    options.ctx.strokeStyle = line.stroke;
+    options.ctx.lineWidth = line.width;
+    options.ctx.moveTo(line.from.X, line.from.Y);
+    options.ctx.lineTo(line.to.X, line.to.Y);
+    options.ctx.stroke();
+}
+
+function createLine(fromX, fromY, toX, toY, stroke, width, alpha) {
+    return {
+        from: { X: fromX, Y: fromY },
+        to: { X: toX, Y: toY },
+        stroke: stroke,
+        width: width,
+        alpha: alpha
+    };
+}
+
+function buildOptionsAsJSON(canvas, iSpeed) {
+    var centerX = 500,
+        centerY = 315,
+        radius = 227,
+        outerRadius = 323;
+
+    return {
+        ctx: canvas.getContext('2d'),
+        speed: iSpeed,
+        center: { X: centerX, Y: centerY },
+        levelRadius: radius - 13,
+        gaugeOptions: {
+            center: { X: centerX, Y: centerY },
+            radius: radius
+        },
+        radius: outerRadius
+    };
+}
+
+function clearCanvas(options) {
+    options.ctx.clearRect(0, 0, 1000, 605);
+}
+
+function applyDefaultContextSettings(options) {
+    options.ctx.lineWidth = 2;
+    options.ctx.globalAlpha = 1.0;
+    options.ctx.strokeStyle = "rgb(255,255,255)";
+    options.ctx.fillStyle = "rgb(255,255,255)";
+}
+
+function drawOuterMetallicArc(options) {
+    options.ctx.beginPath();
+    options.ctx.fillStyle = "rgb(127,127,127)";
+    options.ctx.arc(options.center.X, options.center.Y, options.radius, 0, Math.PI, true);
+    options.ctx.fill();
+}
+
+function drawInnerMetallicArc(options) {
+    options.ctx.beginPath();
+    options.ctx.fillStyle = "rgb(255,255,255)";
+    options.ctx.arc(options.center.X, options.center.Y, (options.radius / 100) * 90, 0, Math.PI, true);
+    options.ctx.fill();
+}
+
+function drawMetallicArc(options) {
+    drawOuterMetallicArc(options);
+    drawInnerMetallicArc(options);
+}
+
+function drawBackground(options) {
+    options.ctx.globalAlpha = 1.0;
+    options.ctx.fillStyle = "rgb(0,0,0)";
+    options.ctx.fillRect(15, 15, 970, 563);
+}
+
+
+function drawSmallTickMarks(options) {
+    var tickvalue = options.levelRadius + 28;
+    var gaugeOptions = options.gaugeOptions;
+    applyDefaultContextSettings(options);
+
+    for (var iTick = 10; iTick < 180; iTick += 20) {
+        var iTickRad = degToRad(iTick);
+        var onArchX = gaugeOptions.radius - (Math.cos(iTickRad) * tickvalue);
+        var onArchY = gaugeOptions.radius - (Math.sin(iTickRad) * tickvalue);
+        var innerTickX = gaugeOptions.radius - (Math.cos(iTickRad) * gaugeOptions.radius);
+        var innerTickY = gaugeOptions.radius - (Math.sin(iTickRad) * gaugeOptions.radius);
+
+        var fromX = (options.center.X - gaugeOptions.radius) + onArchX;
+        var fromY = (gaugeOptions.center.Y - gaugeOptions.radius) + onArchY;
+        var toX = (options.center.X - gaugeOptions.radius) + innerTickX;
+        var toY = (gaugeOptions.center.Y - gaugeOptions.radius) + innerTickY;
+
+        var line = createLine(fromX, fromY, toX, toY, "rgb(127,127,127)", 3, 0.6);
+        drawLine(options, line);
+    }
+}
+
+function drawLargeTickMarks(options) {
+    var tickvalue = options.levelRadius + 22;
+    var gaugeOptions = options.gaugeOptions;
+    applyDefaultContextSettings(options);
+
+    for (var iTick = 20; iTick < 180; iTick += 20) {
+        var iTickRad = degToRad(iTick);
+        var onArchX = gaugeOptions.radius - (Math.cos(iTickRad) * tickvalue);
+        var onArchY = gaugeOptions.radius - (Math.sin(iTickRad) * tickvalue);
+        var innerTickX = gaugeOptions.radius - (Math.cos(iTickRad) * gaugeOptions.radius);
+        var innerTickY = gaugeOptions.radius - (Math.sin(iTickRad) * gaugeOptions.radius);
+
+        var fromX = (options.center.X - gaugeOptions.radius) + onArchX;
+        var fromY = (gaugeOptions.center.Y - gaugeOptions.radius) + onArchY;
+        var toX = (options.center.X - gaugeOptions.radius) + innerTickX;
+        var toY = (gaugeOptions.center.Y - gaugeOptions.radius) + innerTickY;
+
+        var line = createLine(fromX, fromY, toX, toY, "rgb(127,127,127)", 3, 0.6);
+        drawLine(options, line);
+    }
+}
+
+function drawTicks(options) {
+    drawSmallTickMarks(options);
+    drawLargeTickMarks(options);
+}
+
+function drawTextMarkers(options) {
+    var gaugeOptions = options.gaugeOptions;
+    var iTickToPrint = 0;
+    applyDefaultContextSettings(options);
+
+    options.ctx.font = 'italic 12px sans-serif';
+    options.ctx.textBaseline = 'top';
+    options.ctx.beginPath();
+
+    for (var iTick = 10; iTick < 180; iTick += 20) {
+        var textRadius = gaugeOptions.radius * 1.1;
+        var innerTickX = gaugeOptions.radius - (Math.cos(degToRad(iTick)) * textRadius);
+        var innerTickY = gaugeOptions.radius - (Math.sin(degToRad(iTick)) * textRadius);
+        var xPos = (options.center.X - gaugeOptions.radius - 12) + innerTickX;
+        var yPos = (gaugeOptions.center.Y - gaugeOptions.radius - 12) + innerTickY;
+
+        // Positioning logic from original code
+        if (iTick < 50) { xPos -= 5; yPos += 5; }
+        else if (iTick < 90) { /* default */ }
+        else if (iTick == 90) { xPos += 4; }
+        else if (iTick < 145) { xPos += 15; }
+        else { xPos += 25; yPos += 5; }
+
+        options.ctx.fillText(iTickToPrint, xPos, yPos);
+        iTickToPrint += 25;  // Increment by 25 to reach 200
+    }
+    options.ctx.stroke();
+}
+
+function drawCircleAtLimit(options, speedLimit) {
+    // Calculate position based on speed limit (0-200 range maps to 10-170 degrees)
+    // Arc spans 160 degrees (from 10 to 170), so: (speedLimit / 200) * 160 + 10
+    var limitAngle = (speedLimit * 160 / 200) + 10;
+    var gaugeOptions = options.gaugeOptions;
+    
+    // Calculate position on the arc (where the stem will intersect)
+    var arcX = gaugeOptions.radius - (Math.cos(degToRad(limitAngle)) * options.levelRadius);
+    var arcY = gaugeOptions.radius - (Math.sin(degToRad(limitAngle)) * options.levelRadius);
+    var arcFromX = (options.center.X - gaugeOptions.radius) + arcX;
+    var arcFromY = (gaugeOptions.center.Y - gaugeOptions.radius) + arcY;
+    
+    // Calculate circle position (further out from the gauge, beyond text markers)
+    var extendedRadius = gaugeOptions.radius + 36; // Move 36 pixels beyond the outer edge
+    var innerTickX = gaugeOptions.radius - (Math.cos(degToRad(limitAngle)) * extendedRadius);
+    var innerTickY = gaugeOptions.radius - (Math.sin(degToRad(limitAngle)) * extendedRadius);
+    var xPos = (options.center.X - gaugeOptions.radius) + innerTickX;
+    var yPos = (gaugeOptions.center.Y - gaugeOptions.radius) + innerTickY;
+    
+    // Draw stem line from arc to circle
+    var line = createLine(arcFromX, arcFromY, xPos, yPos, "rgb(255, 0, 0)", 4.8, 1.0);
+    drawLine(options, line);
+    
+    // Draw white filled circle with red border
+    options.ctx.beginPath();
+    options.ctx.fillStyle = "rgb(255, 255, 255)";
+    options.ctx.strokeStyle = "rgb(255, 0, 0)";
+    options.ctx.lineWidth = 3.6;
+    options.ctx.arc(xPos, yPos, 12, 0, Math.PI * 2, false);
+    options.ctx.fill();
+    options.ctx.stroke();
+}
+
+function drawSpeedometerColourArc(options) {
+    // Draw grey background bar for the entire speedometer range
+    options.ctx.beginPath();
+    options.ctx.globalAlpha = 1.0;
+    options.ctx.lineWidth = 24;
+    options.ctx.strokeStyle = "rgb(180, 180, 180)";
+    options.ctx.arc(options.center.X, options.center.Y, options.levelRadius, 
+                    Math.PI + degToRad(10), 
+                    Math.PI + degToRad(10) + degToRad(160), false);
+    options.ctx.stroke();
+}
+
+function drawSpeedBar(options, speedLimit) {
+    var iSpeed = options.speed;
+    if (iSpeed > 200) iSpeed = 200; // Limit to 200
+    
+    // Calculate the arc length based on speed (0-200 maps to 0-160 degrees)
+    var arcLength = (iSpeed * 160 / 200);
+    
+    // Determine color based on speed vs speed limit (same as speed box)
+    var barColor;
+    if (speedLimit && options.speed > speedLimit + 10) {
+        barColor = "rgb(255, 0, 0)"; // Red when over limit by more than 10 km/h
+    } else if (speedLimit && options.speed > speedLimit) {
+        barColor = "rgb(255, 255, 0)"; // Yellow when over limit by up to 10 km/h
+    } else {
+        barColor = "rgb(255, 255, 255)"; // White when at or below limit
+    }
+    
+    // Draw colored bar on top of grey background
+    options.ctx.beginPath();
+    options.ctx.globalAlpha = 1.0;
+    options.ctx.lineWidth = 24;
+    options.ctx.strokeStyle = barColor;
+    options.ctx.arc(options.center.X, options.center.Y, options.levelRadius, 
+                    Math.PI + degToRad(10), 
+                    Math.PI + degToRad(10) + degToRad(arcLength), false);
+    options.ctx.stroke();
+}
+
+function drawSpeedBox(options, speedLimit, isSlipping) {
+    var boxWidth = 135;
+    var boxHeight = 85;
+    // Center the box on the canvas and move up by one full box height
+    var boxX = options.center.X - (boxWidth / 2);
+    var boxY = options.center.Y - (boxHeight * 1.5);
+    
+    // Determine color based on speed vs speed limit (same as progress bar)
+    var boxColor;
+    if (speedLimit && options.speed > speedLimit + 10) {
+        // Flash between white and red when over limit by more than 10 km/h
+        boxColor = flashState ? "rgb(255, 0, 0)" : "rgb(255, 255, 255)";
+    } else if (speedLimit && options.speed > speedLimit) {
+        boxColor = "rgb(255, 255, 0)"; // Solid yellow when over limit by up to 10 km/h
+    } else {
+        boxColor = "rgb(255, 255, 255)"; // White when at or below limit
+    }
+    
+    // Draw colored outlined box
+    options.ctx.strokeStyle = boxColor;
+    options.ctx.lineWidth = 3.6;
+    options.ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+    
+    // Draw zig-zag lines when slipping
+    if (isSlipping) {
+        // Flash between red and white
+        var zigzagColor = flashState ? "rgb(255, 0, 0)" : "rgb(255, 255, 255)";
+        options.ctx.strokeStyle = zigzagColor;
+        options.ctx.lineWidth = 2.4;
+        options.ctx.globalAlpha = 0.7;
+        
+        var centerX = boxX + boxWidth / 2;
+        
+        // Draw 2 lines on the left and 2 on the right
+        var leftPositions = [centerX - 55, centerX - 46];
+        var rightPositions = [centerX + 46, centerX + 55];
+        var allPositions = leftPositions.concat(rightPositions);
+        
+        // Draw vertical zig-zag lines
+        for (var i = 0; i < 4; i++) {
+            var startX = allPositions[i];
+            options.ctx.beginPath();
+            options.ctx.moveTo(startX, boxY + 12);
+            
+            // Create zig-zag pattern
+            for (var j = 0; j < 6; j++) {
+                var xOffset = (j % 2 === 0) ? 6 : -6;
+                var yStep = 12;
+                options.ctx.lineTo(startX + xOffset, boxY + 12 + (j * yStep));
+            }
+            options.ctx.stroke();
+        }
+        options.ctx.globalAlpha = 1.0;
+    }
+    
+    // Draw speed number in the same color
+    options.ctx.fillStyle = boxColor;
+    options.ctx.font = 'bold 41px sans-serif';
+    options.ctx.textAlign = 'center';
+    options.ctx.textBaseline = 'middle';
+    options.ctx.fillText(Math.round(options.speed), boxX + boxWidth / 2, boxY + boxHeight / 2);
+}
+
+function drawBrakeBox(options, brakeValue) {
+    var boxWidth = 135;
+    var boxHeight = 85;
+    // Position below the speed box
+    var boxX = options.center.X - (boxWidth / 2) + 250;
+    var boxY = options.center.Y + (boxHeight * 0.3) - 39;
+    
+    // White box
+    var boxColor = "rgb(255, 255, 255)";
+    
+    // Draw white outlined box
+    options.ctx.strokeStyle = boxColor;
+    options.ctx.lineWidth = 3.6;
+    options.ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+    
+    // Draw brake value as percentage
+    options.ctx.fillStyle = boxColor;
+    options.ctx.font = 'bold 41px sans-serif';
+    options.ctx.textAlign = 'center';
+    options.ctx.textBaseline = 'middle';
+    
+    var displayValue = brakeValue !== undefined && brakeValue !== null ? Math.round(brakeValue) + '%' : '--';
+    options.ctx.fillText(displayValue, boxX + boxWidth / 2, boxY + boxHeight / 2);
+}
+
+function drawLocomotiveBrakeBox(options, locomotiveBrakeValue) {
+    var boxWidth = 135;
+    var boxHeight = 85;
+    // Position to the left of the train brake box
+    var boxX = options.center.X - (boxWidth / 2) + 250 - boxWidth - 15;
+    var boxY = options.center.Y + (boxHeight * 0.3) - 39;
+    
+    // White box
+    var boxColor = "rgb(255, 255, 255)";
+    
+    // Draw white outlined box
+    options.ctx.strokeStyle = boxColor;
+    options.ctx.lineWidth = 3.6;
+    options.ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+    
+    // Draw locomotive brake value as percentage
+    options.ctx.fillStyle = boxColor;
+    options.ctx.font = 'bold 41px sans-serif';
+    options.ctx.textAlign = 'center';
+    options.ctx.textBaseline = 'middle';
+    
+    var displayValue = locomotiveBrakeValue !== undefined && locomotiveBrakeValue !== null ? Math.round(locomotiveBrakeValue * 100) + '%' : '--';
+    options.ctx.fillText(displayValue, boxX + boxWidth / 2, boxY + boxHeight / 2);
+}
+
+function drawElectricDynamicBrakeBox(options, electricDynamicBrakeValue) {
+    var boxWidth = 135;
+    var boxHeight = 85;
+    // Position to the left of the locomotive brake box
+    var boxX = options.center.X - (boxWidth / 2) + 250 - (boxWidth * 2) - 30;
+    var boxY = options.center.Y + (boxHeight * 0.3) - 39;
+    
+    // White box
+    var boxColor = "rgb(255, 255, 255)";
+    
+    // Draw white outlined box
+    options.ctx.strokeStyle = boxColor;
+    options.ctx.lineWidth = 3.6;
+    options.ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+    
+    // Draw electric dynamic brake value as percentage
+    options.ctx.fillStyle = boxColor;
+    options.ctx.font = 'bold 41px sans-serif';
+    options.ctx.textAlign = 'center';
+    options.ctx.textBaseline = 'middle';
+    
+    var displayValue = electricDynamicBrakeValue !== undefined && electricDynamicBrakeValue !== null ? Math.round(electricDynamicBrakeValue) + '%' : '--';
+    options.ctx.fillText(displayValue, boxX + boxWidth / 2, boxY + boxHeight / 2);
+}
+
+function drawSpeedLimitBox(options, speedLimit) {
+    var boxWidth = 97;
+    var boxHeight = 61;
+    // Position in top right corner of canvas
+    var boxX = 1000 - boxWidth - 26;
+    var boxY = 26;
+    
+    // Determine color based on speed vs speed limit
+    var boxColor;
+    if (speedLimit && options.speed > speedLimit + 10) {
+        // Flash between white and red when over limit by more than 10 km/h
+        boxColor = flashState ? "rgb(255, 0, 0)" : "rgb(255, 255, 255)";
+    } else if (speedLimit && options.speed > speedLimit) {
+        boxColor = "rgb(255, 255, 0)"; // Solid yellow when over limit by up to 10 km/h
+    } else {
+        boxColor = "rgb(255, 255, 255)"; // White when at or below limit
+    }
+    
+    // Draw outlined box
+    options.ctx.strokeStyle = boxColor;
+    options.ctx.lineWidth = 3.6;
+    options.ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+    
+    // Draw speed limit number
+    options.ctx.fillStyle = boxColor;
+    options.ctx.font = 'bold 34px sans-serif';
+    options.ctx.textAlign = 'center';
+    options.ctx.textBaseline = 'middle';
+    
+    var displayValue = speedLimit !== undefined && speedLimit !== null ? Math.round(speedLimit) : '--';
+    options.ctx.fillText(displayValue, boxX + boxWidth / 2, boxY + boxHeight / 2);
+}
+
+function drawPowerHandleBox(options, powerHandle, isTractionLocked) {
+    var boxWidth = 97;
+    var boxHeight = 61;
+    // Position below speed limit box
+    var boxX = 1000 - boxWidth - 26;
+    var boxY = 26 + 61 + 12; // Below speed limit box with 12px gap
+    
+    // Red box when traction is locked, white otherwise
+    var boxColor = isTractionLocked ? "rgb(255, 0, 0)" : "rgb(255, 255, 255)";
+    
+    // Draw outlined box
+    options.ctx.strokeStyle = boxColor;
+    options.ctx.lineWidth = 3.6;
+    options.ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+    
+    // Draw power handle value - yellow if negative, white if positive
+    var textColor = (powerHandle !== undefined && powerHandle !== null && powerHandle < 0) ? "rgb(255, 255, 0)" : "rgb(255, 255, 255)";
+    options.ctx.fillStyle = textColor;
+    options.ctx.font = 'bold 34px sans-serif';
+    options.ctx.textAlign = 'center';
+    options.ctx.textBaseline = 'middle';
+    
+    var displayValue = powerHandle !== undefined && powerHandle !== null ? Math.round(powerHandle) : '--';
+    options.ctx.fillText(displayValue, boxX + boxWidth / 2, boxY + boxHeight / 2);
+}
+
+function drawGradientBox(options, incline) {
+    var boxWidth = 97;
+    var boxHeight = 61;
+    // Position below power handle box
+    var boxX = 1000 - boxWidth - 26;
+    var boxY = 26 + 61 + 12 + 61 + 12; // Below power handle box with 12px gap
+    
+    // White box
+    var boxColor = "rgb(255, 255, 255)";
+    
+    // Draw white outlined box
+    options.ctx.strokeStyle = boxColor;
+    options.ctx.lineWidth = 3.6;
+    options.ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+    
+    // Draw gradient value
+    options.ctx.fillStyle = boxColor;
+    options.ctx.font = 'bold 34px sans-serif';
+    options.ctx.textAlign = 'center';
+    options.ctx.textBaseline = 'middle';
+    
+    var displayValue = incline !== undefined && incline !== null ? incline.toFixed(1) + '%' : '--';
+    options.ctx.fillText(displayValue, boxX + boxWidth / 2, boxY + boxHeight / 2);
+}
+
+function drawNextSpeedLimitBox(options, nextSpeedLimit) {
+    var boxWidth = 97;
+    var boxHeight = 61;
+    // Position in top left corner of canvas
+    var boxX = 26;
+    var boxY = 26;
+    
+    // White box
+    var boxColor = "rgb(255, 255, 255)";
+    
+    // Draw white outlined box
+    options.ctx.strokeStyle = boxColor;
+    options.ctx.lineWidth = 3.6;
+    options.ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+    
+    // Draw next speed limit number
+    options.ctx.fillStyle = boxColor;
+    options.ctx.font = 'bold 34px sans-serif';
+    options.ctx.textAlign = 'center';
+    options.ctx.textBaseline = 'middle';
+    
+    var displayValue = nextSpeedLimit !== undefined && nextSpeedLimit !== null ? Math.round(nextSpeedLimit) : '--';
+    options.ctx.fillText(displayValue, boxX + boxWidth / 2, boxY + boxHeight / 2);
+}
+
+function drawDistanceToNextSpeedLimitBox(options, distance) {
+    var boxWidth = 97;
+    var boxHeight = 61;
+    // Position below next speed limit box
+    var boxX = 26;
+    var boxY = 26 + 61 + 12; // Below next speed limit box with 12px gap
+    
+    // White box
+    var boxColor = "rgb(255, 255, 255)";
+    
+    // Draw white outlined box
+    options.ctx.strokeStyle = boxColor;
+    options.ctx.lineWidth = 3.6;
+    options.ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+    
+    // Draw distance value in meters
+    options.ctx.fillStyle = boxColor;
+    options.ctx.font = 'bold 34px sans-serif';
+    options.ctx.textAlign = 'center';
+    options.ctx.textBaseline = 'middle';
+    
+    var displayValue = distance !== undefined && distance !== null ? Math.round(distance) : '--';
+    options.ctx.fillText(displayValue, boxX + boxWidth / 2, boxY + boxHeight / 2);
+}
+
+function drawTimeBox(options, localTime) {
+    var boxWidth = 195;
+    var boxHeight = 61;
+    // Position centered horizontally below the brake boxes
+    var boxX = options.center.X - (boxWidth / 2);
+    var boxY = options.center.Y + (boxHeight * 0.3) + 61; // Below the brake boxes
+    
+    // White box
+    var boxColor = "rgb(255, 255, 255)";
+    
+    // Draw white outlined box
+    options.ctx.strokeStyle = boxColor;
+    options.ctx.lineWidth = 3.6;
+    options.ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+    
+    // Parse and format the time from ISO8601 format
+    var displayValue = '--:--:--';
+    if (localTime) {
+        try {
+            // Extract time portion from ISO8601 string (e.g., "2020-12-27T10:14:49.982-04:00")
+            var timePart = localTime.split('T')[1].split('.')[0]; // Gets "10:14:49"
+            displayValue = timePart;
+        } catch (e) {
+            console.error('Error parsing time:', e);
+        }
+    }
+    
+    // Draw time value
+    options.ctx.fillStyle = boxColor;
+    options.ctx.font = 'bold 34px sans-serif';
+    options.ctx.textAlign = 'center';
+    options.ctx.textBaseline = 'middle';
+    options.ctx.fillText(displayValue, boxX + boxWidth / 2, boxY + boxHeight / 2);
+}
+
+function drawTimetableBox(options, timetableTime, timetableLabel, distanceToStation) {
+    var boxWidth = 195;
+    var boxHeight = 61;
+    // Position below the time box
+    var boxX = options.center.X - (boxWidth / 2);
+    var boxY = options.center.Y + (boxHeight * 0.3) + 61 + 70; // Below the time box with gap
+    
+    // White box
+    var boxColor = "rgb(255, 255, 255)";
+    
+    // Draw white outlined box
+    options.ctx.strokeStyle = boxColor;
+    options.ctx.lineWidth = 3.6;
+    options.ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+    
+    // Format the timetable time display
+    var displayValue = '--:--:--';
+    if (timetableTime) {
+        displayValue = timetableTime;
+    }
+    
+    // Draw time value
+    options.ctx.fillStyle = boxColor;
+    options.ctx.font = 'bold 34px sans-serif';
+    options.ctx.textAlign = 'center';
+    options.ctx.textBaseline = 'middle';
+    options.ctx.fillText(displayValue, boxX + boxWidth / 2, boxY + boxHeight / 2);
+    
+    // Draw label to the right of the box
+    if (timetableLabel) {
+        options.ctx.fillStyle = boxColor;
+        options.ctx.font = 'bold 34px sans-serif';
+        options.ctx.textAlign = 'left';
+        options.ctx.textBaseline = 'middle';
+        options.ctx.fillText(timetableLabel, boxX + boxWidth + 15, boxY + boxHeight / 2);
+    }
+    
+    // Draw distance to the left of the box (only if available)
+    if (distanceToStation !== null && distanceToStation !== undefined) {
+        options.ctx.fillStyle = boxColor;
+        options.ctx.font = 'bold 34px sans-serif';
+        options.ctx.textAlign = 'right';
+        options.ctx.textBaseline = 'middle';
+        
+        // Display in km if distance > 3000m, otherwise in meters
+        var distanceText;
+        if (distanceToStation > 3000) {
+            distanceText = (distanceToStation / 1000).toFixed(1) + 'km';
+        } else {
+            distanceText = distanceToStation + 'm';
+        }
+        
+        options.ctx.fillText(distanceText, boxX - 15, boxY + boxHeight / 2);
+    }
+}
+
+function draw(iSpeed, speedLimit, isSlipping, powerHandle, incline, nextSpeedLimit, distanceToNextSpeedLimit, trainBrakeValue, trainBrakeActive, locomotiveBrakeValue, locomotiveBrakeActive, electricDynamicBrakeValue, electricBrakeActive, isTractionLocked, localTime, timetableTime, timetableLabel, distanceToStation) {
+    var canvas = document.getElementById('tutorial');
+    if (canvas !== null && canvas.getContext) {
+        var options = buildOptionsAsJSON(canvas, iSpeed);
+        clearCanvas(options);
+        drawBackground(options);
+        drawTicks(options);
+        drawTextMarkers(options);
+        drawSpeedometerColourArc(options);
+        drawSpeedBar(options, speedLimit);
+        if (speedLimit !== undefined && speedLimit !== null) {
+            drawCircleAtLimit(options, speedLimit);
+        }
+        drawSpeedBox(options, speedLimit, isSlipping);
+        if (trainBrakeActive) {
+            drawBrakeBox(options, trainBrakeValue);
+        }
+        if (locomotiveBrakeActive) {
+            drawLocomotiveBrakeBox(options, locomotiveBrakeValue);
+        }
+        if (electricBrakeActive) {
+            drawElectricDynamicBrakeBox(options, electricDynamicBrakeValue);
+        }
+        drawSpeedLimitBox(options, speedLimit);
+        drawPowerHandleBox(options, powerHandle, isTractionLocked);
+        drawGradientBox(options, incline);
+        if (distanceToNextSpeedLimit !== undefined && distanceToNextSpeedLimit !== null && distanceToNextSpeedLimit > 1) {
+            drawNextSpeedLimitBox(options, nextSpeedLimit);
+            drawDistanceToNextSpeedLimitBox(options, distanceToNextSpeedLimit);
+        }
+        drawTimeBox(options, localTime);
+        drawTimetableBox(options, timetableTime, timetableLabel, distanceToStation);
+    } else {
+        alert("Canvas not supported!");
+    }
+}
+
+    </script>
+    <script>
+        function toggleDisplay() {
+            var display = document.getElementById('display');
+            var button = document.getElementById('toggleRawData');
+            if (display.style.display === 'none' || display.style.display === '') {
+                display.style.display = 'block';
+                button.textContent = 'Hide Data';
+            } else {
+                display.style.display = 'none';
+                button.textContent = 'Show Data';
+            }
+        }
+    </script>
+</head>
+<body onload='draw(0);'>
+    <div id="container">
+        <canvas id="tutorial" width="1000" height="605">Canvas not available.</canvas>
+    </div>
+    
+    <button id="toggleRawData" onclick="toggleDisplay()">Show Data</button>
+    <div id="display">Waiting for data...</div>    
+    <script>
+        // Connect to the server's /stream endpoint
+        const eventSource = new EventSource('/stream');
+
+        // Store current data globally
+        var currentData = null;
+        
+        // Redraw at regular intervals to support flashing
+        setInterval(function() {
+            if (currentData) {
+                draw(Math.round(currentData.speed), currentData.limit, currentData.isSlipping, currentData.powerHandle, currentData.incline, currentData.nextSpeedLimit, currentData.distanceToNextSpeedLimit, currentData.trainBreak, currentData.trainBrakeActive, currentData.locomotiveBrakeHandle, currentData.locomotiveBrakeActive, currentData.electricDynamicBrake, currentData.electricBrakeActive, currentData.isTractionLocked, currentData.localTime, currentData.timetableTime, currentData.timetableLabel, currentData.distanceToStation);
+            }
+        }, 100); // Redraw every 100ms for smooth flashing
+        
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            currentData = data;
+            // Display the data on the page
+            document.getElementById('display').innerText = JSON.stringify(data, null, 2);
+            // Update the speedometer with the new speed value and limit
+            draw(Math.round(data.speed), data.limit, data.isSlipping, data.powerHandle, data.incline, data.nextSpeedLimit, data.distanceToNextSpeedLimit, data.trainBreak, data.trainBrakeActive, data.locomotiveBrakeHandle, data.locomotiveBrakeActive, data.electricDynamicBrake, data.electricBrakeActive, data.isTractionLocked, data.localTime, data.timetableTime, data.timetableLabel, data.distanceToStation);
+        };
+
+        eventSource.onerror = () => {
+            console.error("SSE connection lost.");
+        };
+    </script>
+</body>
+</html>

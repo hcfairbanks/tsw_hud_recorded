@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Route Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 1000;
+            min-width: 320px;
+        }
+
+        .info-panel h2 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 18px;
+            border-bottom: 2px solid #0066ff;
+            padding-bottom: 10px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-connected {
+            background-color: #00cc66;
+            box-shadow: 0 0 6px #00cc66;
+        }
+
+        .status-disconnected {
+            background-color: #ff0000;
+            box-shadow: 0 0 6px #ff0000;
+        }
+
+        .info-group {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .info-group h3 {
+            font-size: 14px;
+            color: #000;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 6px 0;
+            font-size: 13px;
+        }
+
+        .info-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: bold;
+        }
+
+        .timetable-display {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .game-time {
+            font-size: 14px;
+            font-weight: normal;
+            margin-bottom: 8px;
+            opacity: 0.9;
+            font-family: 'Courier New', monospace;
+        }
+
+        .timetable-time {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .timetable-label {
+            font-size: 14px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .distance-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0066ff;
+            margin-top: 10px;
+        }
+
+        .legend {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .copy-coords-btn {
+            background: #0066ff;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .copy-position-btn {
+            background: #0066ff;
+            color: white;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 9px;
+            margin-top: 2px;
+            display: block;
+        }
+
+        .copy-position-btn:hover {
+            background: #0052cc;
+        }
+
+        .copy-position-btn:active {
+            background: #003d99;
+        }
+
+        .copy-coords-btn:hover {
+            background: #0052cc;
+        }
+
+        .copy-coords-btn:active {
+            background: #003d99;
+        }
+
+        .coords-display {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            margin-top: 5px;
+            white-space: pre;
+        }
+
+        .legend h3 {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 6px 0;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .legend-line {
+            width: 20px;
+            height: 4px;
+            margin-right: 10px;
+            border-radius: 2px;
+        }
+
+        .route-selector {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .route-selector h3 {
+            font-size: 13px;
+            color: #333;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .route-selector select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .route-selector button {
+            width: 100%;
+            margin-top: 8px;
+            padding: 8px;
+            background: #0066ff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .route-selector button:hover {
+            background: #0052cc;
+        }
+
+        .route-selector button:active {
+            background: #003d99;
+        }
+
+        .route-selector button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .route-selector .status-message {
+            margin-top: 5px;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .route-selector .status-message.success {
+            color: #00cc66;
+        }
+
+        .route-selector .status-message.error {
+            color: #ff0000;
+        }
+
+        .browse-btn {
+            background: #28a745 !important;
+            margin-top: 5px;
+        }
+
+        .browse-btn:hover {
+            background: #218838 !important;
+        }
+
+        #fileInput {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div class="info-panel">
+        <h2>🚂 Live Route Tracker</h2>
+        
+        <div class="info-item" style="margin-bottom: 15px;">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="connectionStatus">Connecting...</span>
+        </div>
+
+        <div class="route-selector">
+            <input type="file" id="fileInput" accept=".json" onchange="handleFileSelect(event)">
+            <button class="browse-btn" id="browseBtn" onclick="document.getElementById('fileInput').click()">📁 Select Route</button>
+            <div class="status-message" id="routeStatusMessage"></div>
+        </div>
+
+        <div class="timetable-display" id="timetableDisplay" style="display: none;">
+            <div class="game-time" id="gameTime">--:--:--</div>
+            <div class="timetable-time" id="timetableTime">--:--</div>
+            <div class="timetable-label" id="timetableLabel">Next Stop</div>
+            <div class="distance-display" id="distanceDisplay" style="display: none;">
+                <span id="distanceValue">0</span> m
+            </div>
+        </div>
+        
+        <div class="info-group">
+            <h3 id="routeName">Loading...</h3>
+            <div class="info-item" style="display: none;">
+                <span class="info-label">Duration:</span>
+                <span class="info-value" id="routeDuration">-</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Total Points:</span>
+                <span class="info-value" id="totalPoints">-</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Markers:</span>
+                <span class="info-value" id="totalMarkers">-</span>
+            </div>
+        </div>
+
+        <div class="info-group">
+            <h3>Train Status</h3>
+            <div class="info-item">
+                <span class="info-label">Speed:</span>
+                <span class="info-value"><span id="speed">0</span> km/h</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Direction:</span>
+                <span class="info-value" id="direction">-</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Position:</span>
+                <span class="info-value" style="font-size: 11px;">
+                    <div>Lat: <span id="currentLat">-</span></div>
+                    <div>Lng: <span id="currentLng">-</span></div>
+                    <button class="copy-position-btn" id="copyPositionBtn" onclick="copyCurrentPosition()">Copy</button>
+                </span>
+            </div>
+        </div>
+
+        <div class="info-group">
+            <h3>Coordinates</h3>
+            <div class="info-item" style="flex-direction: column; align-items: flex-start;">
+                <span class="info-label" style="margin-bottom: 5px;">Click map or marker to capture</span>
+                <div class="coords-display" id="coordsDisplay">No coordinates selected</div>
+                <button class="copy-coords-btn" id="copyBtn" style="display: none;">Copy Coordinates</button>
+            </div>
+        </div>
+
+        <div class="legend">
+            <h3>Map Legend</h3>
+            <div class="legend-item">
+                <div class="legend-line" style="background: #0066ff;"></div>
+                <span>Route Path</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #00cc66;"></div>
+                <span>Timetable Stations</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff6b6b;"></div>
+                <span>Other Stations</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #4ecdc4;"></div>
+                <span>Other Markers</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ffa500;"></div>
+                <span>Live Train Position</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize the map
+        const map = L.map('map').setView([52.0, -1.5], 6);
+
+        // Add click handler to capture coordinates
+        map.on('click', function(e) {
+            updateCoordinates(e.latlng.lng, e.latlng.lat);
+        });
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Map layers
+        let routePolyline = null;
+        let markerLayers = [];
+        let startMarker = null;
+        let endMarker = null;
+        let trainMarker = null;
+        let routeData = null;
+        let firstPosition = true;
+
+        // Direction mapping
+        const directionMap = {
+            '-1': 'Reverse',
+            '0': 'Neutral',
+            '1': 'Forward'
+        };
+
+        /**
+         * Parse route name to extract clean name and duration
+         * Input: "1Y08 Northampton - London Euston 0705 0044"
+         * Output: { name: "1Y08 Northampton - London Euston", duration: "44 minutes" }
+         */
+        function updateCoordinates(lng, lat) {
+            const coordsDisplay = document.getElementById('coordsDisplay');
+            const copyBtn = document.getElementById('copyBtn');
+            
+            coordsDisplay.textContent = `      "longitude": ${lng},\n      "latitude": ${lat},`;
+            copyBtn.style.display = 'block';
+            
+            // Store for copying
+            copyBtn.onclick = function() {
+                const text = `      "longitude": ${lng},\n      "latitude": ${lat},`;
+                navigator.clipboard.writeText(text).then(() => {
+                    const originalText = copyBtn.textContent;
+                    copyBtn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyBtn.textContent = originalText;
+                    }, 1500);
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                    copyBtn.textContent = 'Copy failed';
+                    setTimeout(() => {
+                        copyBtn.textContent = 'Copy Coordinates';
+                    }, 1500);
+                });
+            };
+        }
+
+        function copyCurrentPosition() {
+            const lat = document.getElementById('currentLat').textContent;
+            const lng = document.getElementById('currentLng').textContent;
+            
+            if (lat === '-' || lng === '-') {
+                return;
+            }
+            
+            const text = `      "longitude": ${lng},\n      "latitude": ${lat},`;
+            const btn = document.getElementById('copyPositionBtn');
+            
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 1500);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                btn.textContent = 'Failed';
+                setTimeout(() => {
+                    btn.textContent = 'Copy';
+                }, 1500);
+            });
+        }
+
+        function parseRouteName(fullName) {
+            // Match pattern: route name + 4 digits (departure) + 4 digits (duration HHMM)
+            const match = fullName.match(/^(.+?)\s+(\d{4})\s+(\d{4})$/);
+            if (!match) {
+                return { name: fullName, duration: null };
+            }
+
+            const routeName = match[1].trim();
+            const durationHHMM = match[3];
+            
+            // Parse HHMM format
+            const hours = parseInt(durationHHMM.substring(0, 2), 10);
+            const minutes = parseInt(durationHHMM.substring(2, 4), 10);
+            
+            // Format duration string
+            let durationStr = '';
+            if (hours > 0 && minutes > 0) {
+                durationStr = `${hours} hour${hours !== 1 ? 's' : ''} ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+            } else if (hours > 0) {
+                durationStr = `${hours} hour${hours !== 1 ? 's' : ''}`;
+            } else {
+                durationStr = `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+            }
+            
+            return { name: routeName, duration: durationStr };
+        }
+
+        // Create custom train icon
+        const trainIcon = L.divIcon({
+            className: 'train-icon',
+            html: '<div style="background: #ffa500; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(255,165,0,0.8), 0 2px 6px rgba(0,0,0,0.3);"></div>',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+        });
+
+        // Load route data
+        
+        // Handle file selection from native file picker
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const statusMessage = document.getElementById('routeStatusMessage');
+            statusMessage.textContent = 'Loading file...';
+            statusMessage.className = 'status-message';
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    // Parse and validate the JSON
+                    const routeData = JSON.parse(e.target.result);
+                    
+                    if (!routeData.coordinates || !routeData.routeName) {
+                        throw new Error('Invalid route file format');
+                    }
+                    
+                    // Send route data to backend
+                    fetch('/api/upload-route', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            filename: file.name,
+                            routeData: routeData
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            // Store in localStorage and reload
+                            localStorage.setItem('customRoute', e.target.result);
+                            localStorage.setItem('customRouteFilename', file.name);
+                            
+                            statusMessage.textContent = `✓ Loaded ${file.name}`;
+                            statusMessage.className = 'status-message success';
+                            
+                            setTimeout(() => {
+                                location.reload();
+                            }, 500);
+                        } else {
+                            throw new Error(result.error || 'Failed to load route on server');
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Failed to send route to server:', err);
+                        statusMessage.textContent = `✗ Server error: ${err.message}`;
+                        statusMessage.className = 'status-message error';
+                    });
+                } catch (err) {
+                    console.error('Failed to load route:', err);
+                    statusMessage.textContent = `✗ Invalid route file: ${err.message}`;
+                    statusMessage.className = 'status-message error';
+                }
+            };
+            
+            reader.onerror = function() {
+                statusMessage.textContent = '✗ Failed to read file';
+                statusMessage.className = 'status-message error';
+            };
+            
+            reader.readAsText(file);
+        }
+        
+        // Check if we have a custom route in localStorage
+        const customRoute = localStorage.getItem('customRoute');
+        const customRouteFilename = localStorage.getItem('customRouteFilename');
+        
+        if (customRoute) {
+            // Load from localStorage
+            try {
+                const data = JSON.parse(customRoute);
+                console.log('Loading custom route from localStorage:', customRouteFilename);
+                routeData = data;
+                initializeRoute(data);
+                
+                // Update route name to show it's from file
+                const routeNameEl = document.getElementById('routeName');
+                if (routeNameEl && customRouteFilename) {
+                    routeNameEl.textContent = `📁 ${customRouteFilename.replace('route_', '').replace('.json', '')}`;
+                }
+            } catch (err) {
+                console.error('Failed to load custom route:', err);
+                localStorage.removeItem('customRoute');
+                localStorage.removeItem('customRouteFilename');
+                loadServerRoute();
+            }
+        } else {
+            loadServerRoute();
+        }
+        
+        function loadServerRoute() {
+            fetch('/route-data')
+            .then(response => {
+                console.log('Route data response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Route data received:', {
+                    routeName: data.routeName,
+                    totalPoints: data.totalPoints,
+                    totalMarkers: data.totalMarkers,
+                    coordinatesLength: data.coordinates ? data.coordinates.length : 0,
+                    markersLength: data.markers ? data.markers.length : 0
+                });
+                routeData = data;
+                initializeRoute(data);
+            })
+            .catch(err => {
+                console.error('Failed to load route data:', err);
+                document.getElementById('routeName').textContent = 'Error loading route';
+            });
+        }
+
+        function initializeRoute(data) {
+            // Update info panel
+            const parsed = parseRouteName(data.routeName || 'Unknown');
+            document.getElementById('routeName').textContent = parsed.name;
+            if (parsed.duration) {
+                document.getElementById('routeDuration').textContent = parsed.duration;
+                document.getElementById('routeDuration').parentElement.style.display = 'flex';
+            }
+            document.getElementById('totalPoints').textContent = (data.totalPoints || 0).toLocaleString();
+            document.getElementById('totalMarkers').textContent = data.totalMarkers || 0;
+
+            // Draw route polyline
+            const coordinates = data.coordinates.map(coord => [coord.latitude, coord.longitude]);
+            routePolyline = L.polyline(coordinates, {
+                color: '#0066ff',
+                weight: 4,
+                opacity: 0.6
+            }).addTo(map);
+
+            // Fit map to route bounds
+            map.fitBounds(routePolyline.getBounds(), { padding: [50, 50] });
+
+            // Add markers
+            if (data.markers && data.markers.length > 0) {
+                addMarkers(data.markers);
+            }
+
+            console.log('Route loaded successfully');
+        }
+
+        function addMarkers(markers) {
+            markers.forEach((marker, index) => {
+                let lat, lng;
+                
+                if (marker.latitude && marker.longitude) {
+                    lat = marker.latitude;
+                    lng = marker.longitude;
+                } else if (marker.detectedAt) {
+                    lat = marker.detectedAt.latitude;
+                    lng = marker.detectedAt.longitude;
+                } else {
+                    return;
+                }
+
+                const markerName = marker.stationName || marker.markerName || `Marker ${index + 1}`;
+                const isStation = marker.markerType === 'Station' || 
+                                marker.markerType === 'Platform' ||
+                                marker.stationName;
+                const isTimetableStation = marker.isTimetableStation === true;
+                
+                let markerColor;
+                if (isTimetableStation) {
+                    markerColor = '#00cc66'; // Green for timetable stations
+                } else if (isStation) {
+                    markerColor = '#ff6b6b'; // Red for other stations
+                } else {
+                    markerColor = '#4ecdc4'; // Cyan for other markers
+                }
+
+                const mapMarker = L.circleMarker([lat, lng], {
+                    radius: 6,
+                    fillColor: markerColor,
+                    color: '#fff',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).bindPopup(`
+                    <strong>${isStation ? '🚉' : '📍'} ${markerName}</strong><br>
+                    <small>${marker.markerType || 'Unknown'}</small>
+                `).on('click', function() {
+                    updateCoordinates(lng, lat);
+                }).addTo(map);
+
+                markerLayers.push(mapMarker);
+            });
+        }
+
+        // Connect to live position stream
+        const eventSource = new EventSource('/stream');
+
+        eventSource.onopen = () => {
+            console.log('Connected to live stream');
+            document.getElementById('connectionStatus').textContent = 'Connected';
+            document.getElementById('statusIndicator').className = 'status-indicator status-connected';
+        };
+
+        eventSource.onerror = () => {
+            console.log('Connection lost');
+            document.getElementById('connectionStatus').textContent = 'Disconnected';
+            document.getElementById('statusIndicator').className = 'status-indicator status-disconnected';
+        };
+
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            // Update speed and direction
+            if (data.speed !== undefined) {
+                document.getElementById('speed').textContent = data.speed;
+            }
+            if (data.direction !== undefined) {
+                document.getElementById('direction').textContent = directionMap[data.direction] || 'Unknown';
+            }
+
+            // Update game time
+            if (data.localTime) {
+                try {
+                    const date = new Date(data.localTime);
+                    const hours = String(date.getUTCHours()).padStart(2, '0');
+                    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+                    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+                    document.getElementById('gameTime').textContent = `${hours}:${minutes}:${seconds}`;
+                } catch (e) {
+                    document.getElementById('gameTime').textContent = '--:--:--';
+                }
+            }
+
+            // Update timetable display
+            if (data.timetableTime && data.timetableLabel) {
+                document.getElementById('timetableDisplay').style.display = 'block';
+                document.getElementById('timetableTime').textContent = data.timetableTime;
+                document.getElementById('timetableLabel').textContent = data.timetableLabel;
+                
+                // Update distance
+                if (data.distanceToStation !== null && data.distanceToStation !== undefined) {
+                    document.getElementById('distanceDisplay').style.display = 'block';
+                    document.getElementById('distanceValue').textContent = data.distanceToStation.toLocaleString();
+                } else {
+                    document.getElementById('distanceDisplay').style.display = 'none';
+                }
+            } else {
+                document.getElementById('timetableDisplay').style.display = 'none';
+            }
+
+            // Update train position
+            if (data.playerPosition && data.playerPosition.latitude && data.playerPosition.longitude) {
+                const lat = data.playerPosition.latitude;
+                const lng = data.playerPosition.longitude;
+
+                document.getElementById('currentLat').textContent = lat.toFixed(6);
+                document.getElementById('currentLng').textContent = lng.toFixed(6);
+
+                // Update or create train marker
+                if (trainMarker) {
+                    trainMarker.setLatLng([lat, lng]);
+                } else {
+                    trainMarker = L.marker([lat, lng], { icon: trainIcon })
+                        .bindPopup('<strong>🚂 Your Train</strong>')
+                        .addTo(map);
+                    
+                    // Only pan to train on first position
+                    if (firstPosition) {
+                        map.panTo([lat, lng]);
+                        firstPosition = false;
+                    }
+                }
+            }
+        };
+
+        console.log('Live Route Tracker initialized');
+    </script>
+</body>
+</html>

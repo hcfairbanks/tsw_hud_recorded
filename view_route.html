@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Route Viewer - Train Map & Markers</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        .control-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 350px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .control-panel h2 {
+            margin-top: 0;
+            color: #333;
+            font-size: 18px;
+            border-bottom: 2px solid #0066ff;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .file-selector {
+            margin-bottom: 20px;
+        }
+
+        .file-selector label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #666;
+        }
+
+        .file-selector input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .info-group {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .info-group h3 {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-size: 13px;
+        }
+
+        .info-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: bold;
+        }
+
+        .toggle-group {
+            margin-bottom: 15px;
+        }
+
+        .toggle-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 5px 0;
+            background: #f8f9fa;
+        }
+
+        .toggle-item label {
+            font-size: 13px;
+            color: #555;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .toggle-item input[type="checkbox"] {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+        }
+
+        .legend {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .legend h3 {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 8px;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .legend-line {
+            width: 20px;
+            height: 4px;
+            margin-right: 8px;
+            border-radius: 2px;
+        }
+
+        .marker-list {
+            margin-top: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .marker-list h3 {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .marker-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: white;
+            border-left: 3px solid #4ecdc4;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .marker-item:hover {
+            background: #e3f2fd;
+            transform: translateX(3px);
+        }
+
+        .marker-item.station {
+            border-left-color: #ff6b6b;
+        }
+
+        .marker-item-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 3px;
+        }
+
+        .marker-item-distance {
+            color: #666;
+            font-size: 11px;
+        }
+
+        .error-message {
+            padding: 15px;
+            background: #ffebee;
+            color: #c62828;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        /* Custom popup styles */
+        .leaflet-popup-content {
+            margin: 10px;
+            min-width: 200px;
+        }
+
+        .popup-title {
+            font-weight: bold;
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .popup-detail {
+            font-size: 12px;
+            color: #666;
+            margin: 3px 0;
+        }
+
+        /* Scrollbar styling */
+        .control-panel::-webkit-scrollbar,
+        .marker-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .control-panel::-webkit-scrollbar-track,
+        .marker-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .control-panel::-webkit-scrollbar-thumb,
+        .marker-list::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+
+        .control-panel::-webkit-scrollbar-thumb:hover,
+        .marker-list::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div class="control-panel">
+        <h2>🚂 Route Viewer</h2>
+        
+        <div class="file-selector">
+            <label for="fileInput">Load Route JSON:</label>
+            <input type="file" id="fileInput" accept=".json">
+        </div>
+
+        <div id="errorContainer"></div>
+        
+        <div id="routeInfo" style="display: none;">
+            <div class="info-group">
+                <h3>Route Information</h3>
+                <div class="info-item">
+                    <span class="info-label">Route:</span>
+                    <span class="info-value" id="routeName">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Total Points:</span>
+                    <span class="info-value" id="totalPoints">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Total Markers:</span>
+                    <span class="info-value" id="totalMarkers">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Duration:</span>
+                    <span class="info-value" id="duration">-</span>
+                </div>
+            </div>
+
+            <div class="toggle-group">
+                <div class="toggle-item">
+                    <label for="toggleRoute">Show Route Line</label>
+                    <input type="checkbox" id="toggleRoute" checked>
+                </div>
+                <div class="toggle-item">
+                    <label for="toggleMarkers">Show Markers</label>
+                    <input type="checkbox" id="toggleMarkers" checked>
+                </div>
+                <div class="toggle-item">
+                    <label for="toggleStartEnd">Show Start/End</label>
+                    <input type="checkbox" id="toggleStartEnd" checked>
+                </div>
+            </div>
+
+            <div class="legend">
+                <h3>Legend</h3>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #0066ff;"></div>
+                    <span>Route Path</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #00cc66;"></div>
+                    <span>Start Point</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff0000;"></div>
+                    <span>End Point</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff6b6b;"></div>
+                    <span>Station</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #4ecdc4;"></div>
+                    <span>Other Marker</span>
+                </div>
+            </div>
+
+            <div class="marker-list" id="markerListContainer" style="display: none;">
+                <h3>Markers (<span id="markerCount">0</span>)</h3>
+                <div id="markerList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize the map (centered on UK)
+        const map = L.map('map').setView([52.0, -1.5], 6);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Store map layers
+        let routePolyline = null;
+        let markerLayers = [];
+        let startMarker = null;
+        let endMarker = null;
+        let currentData = null;
+
+        // File input handler
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    loadRouteData(data);
+                } catch (error) {
+                    showError('Failed to parse JSON file: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        // Toggle handlers
+        document.getElementById('toggleRoute').addEventListener('change', function(e) {
+            if (routePolyline) {
+                if (e.target.checked) {
+                    routePolyline.addTo(map);
+                } else {
+                    routePolyline.remove();
+                }
+            }
+        });
+
+        document.getElementById('toggleMarkers').addEventListener('change', function(e) {
+            markerLayers.forEach(marker => {
+                if (e.target.checked) {
+                    marker.addTo(map);
+                } else {
+                    marker.remove();
+                }
+            });
+        });
+
+        document.getElementById('toggleStartEnd').addEventListener('change', function(e) {
+            if (startMarker) {
+                if (e.target.checked) {
+                    startMarker.addTo(map);
+                    endMarker.addTo(map);
+                } else {
+                    startMarker.remove();
+                    endMarker.remove();
+                }
+            }
+        });
+
+        function showError(message) {
+            const errorContainer = document.getElementById('errorContainer');
+            errorContainer.innerHTML = `<div class="error-message">${message}</div>`;
+            document.getElementById('routeInfo').style.display = 'none';
+        }
+
+        function clearError() {
+            document.getElementById('errorContainer').innerHTML = '';
+        }
+
+        function formatDuration(ms) {
+            const seconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes % 60}m`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${seconds % 60}s`;
+            } else {
+                return `${seconds}s`;
+            }
+        }
+
+        function loadRouteData(data) {
+            clearError();
+            currentData = data;
+
+            // Validate data
+            if (!data.coordinates || !Array.isArray(data.coordinates) || data.coordinates.length === 0) {
+                showError('Invalid route data: missing or empty coordinates');
+                return;
+            }
+
+            // Clear existing layers
+            clearMap();
+
+            // Update info panel
+            document.getElementById('routeName').textContent = data.routeName || 'Unknown';
+            document.getElementById('totalPoints').textContent = (data.totalPoints || data.coordinates.length).toLocaleString();
+            document.getElementById('totalMarkers').textContent = (data.totalMarkers || (data.markers ? data.markers.length : 0)).toLocaleString();
+            document.getElementById('duration').textContent = data.duration ? formatDuration(data.duration) : '-';
+            
+            document.getElementById('routeInfo').style.display = 'block';
+
+            // Draw route polyline
+            const coordinates = data.coordinates.map(coord => [coord.latitude, coord.longitude]);
+            routePolyline = L.polyline(coordinates, {
+                color: '#0066ff',
+                weight: 4,
+                opacity: 0.7
+            }).addTo(map);
+
+            // Fit map to route bounds
+            map.fitBounds(routePolyline.getBounds(), { padding: [50, 50] });
+
+            // Add start marker
+            const startCoord = data.coordinates[0];
+            startMarker = L.circleMarker([startCoord.latitude, startCoord.longitude], {
+                radius: 8,
+                fillColor: '#00cc66',
+                color: '#fff',
+                weight: 3,
+                opacity: 1,
+                fillOpacity: 0.9
+            }).bindPopup(`
+                <div class="popup-title">🚩 Start Point</div>
+                <div class="popup-detail">Lat: ${startCoord.latitude.toFixed(6)}</div>
+                <div class="popup-detail">Lng: ${startCoord.longitude.toFixed(6)}</div>
+            `).addTo(map);
+
+            // Add end marker
+            const endCoord = data.coordinates[data.coordinates.length - 1];
+            endMarker = L.circleMarker([endCoord.latitude, endCoord.longitude], {
+                radius: 8,
+                fillColor: '#ff0000',
+                color: '#fff',
+                weight: 3,
+                opacity: 1,
+                fillOpacity: 0.9
+            }).bindPopup(`
+                <div class="popup-title">🏁 End Point</div>
+                <div class="popup-detail">Lat: ${endCoord.latitude.toFixed(6)}</div>
+                <div class="popup-detail">Lng: ${endCoord.longitude.toFixed(6)}</div>
+            `).addTo(map);
+
+            // Add markers if present
+            if (data.markers && Array.isArray(data.markers) && data.markers.length > 0) {
+                addMarkers(data.markers);
+                populateMarkerList(data.markers);
+            }
+        }
+
+        function addMarkers(markers) {
+            markers.forEach((marker, index) => {
+                // Determine if marker has calculated position or use detectedAt
+                let lat, lng;
+                
+                if (marker.position) {
+                    lat = marker.position.latitude;
+                    lng = marker.position.longitude;
+                } else if (marker.detectedAt) {
+                    lat = marker.detectedAt.latitude;
+                    lng = marker.detectedAt.longitude;
+                } else {
+                    console.warn('Marker without position:', marker);
+                    return;
+                }
+
+                // Determine marker type and color
+                const isStation = marker.markerType === 'Station' || 
+                                marker.stationName || 
+                                (marker.type && marker.type.includes('Station'));
+                
+                const markerColor = isStation ? '#ff6b6b' : '#4ecdc4';
+                const markerName = marker.stationName || marker.markerName || marker.name || `Marker ${index + 1}`;
+
+                // Create marker
+                const mapMarker = L.circleMarker([lat, lng], {
+                    radius: 6,
+                    fillColor: markerColor,
+                    color: '#fff',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).bindPopup(`
+                    <div class="popup-title">${isStation ? '🚉' : '📍'} ${markerName}</div>
+                    <div class="popup-detail">Type: ${marker.markerType || 'Unknown'}</div>
+                    ${marker.distanceAheadMeters ? `<div class="popup-detail">Distance: ${marker.distanceAheadMeters.toFixed(0)}m ahead (when detected)</div>` : ''}
+                    ${marker.position && marker.position.distanceFromStart ? `<div class="popup-detail">From start: ${(marker.position.distanceFromStart / 1000).toFixed(2)} km</div>` : ''}
+                    <div class="popup-detail">Lat: ${lat.toFixed(6)}</div>
+                    <div class="popup-detail">Lng: ${lng.toFixed(6)}</div>
+                `).addTo(map);
+
+                markerLayers.push(mapMarker);
+            });
+        }
+
+        function populateMarkerList(markers) {
+            const markerList = document.getElementById('markerList');
+            const markerListContainer = document.getElementById('markerListContainer');
+            
+            markerList.innerHTML = '';
+            document.getElementById('markerCount').textContent = markers.length;
+
+            markers.forEach((marker, index) => {
+                const isStation = marker.markerType === 'Station' || 
+                                marker.stationName || 
+                                (marker.type && marker.type.includes('Station'));
+                
+                const markerName = marker.stationName || marker.markerName || marker.name || `Marker ${index + 1}`;
+                
+                const listItem = document.createElement('div');
+                listItem.className = `marker-item ${isStation ? 'station' : ''}`;
+                
+                let distanceText = '';
+                if (marker.position && marker.position.distanceFromStart) {
+                    distanceText = `${(marker.position.distanceFromStart / 1000).toFixed(2)} km from start`;
+                } else if (marker.distanceAheadMeters) {
+                    distanceText = `${marker.distanceAheadMeters.toFixed(0)}m ahead (when detected)`;
+                }
+
+                listItem.innerHTML = `
+                    <div class="marker-item-name">${isStation ? '🚉' : '📍'} ${markerName}</div>
+                    ${distanceText ? `<div class="marker-item-distance">${distanceText}</div>` : ''}
+                `;
+
+                // Click to zoom to marker
+                listItem.addEventListener('click', () => {
+                    const markerLayer = markerLayers[index];
+                    if (markerLayer) {
+                        map.setView(markerLayer.getLatLng(), 15);
+                        markerLayer.openPopup();
+                    }
+                });
+
+                markerList.appendChild(listItem);
+            });
+
+            markerListContainer.style.display = 'block';
+        }
+
+        function clearMap() {
+            // Remove existing layers
+            if (routePolyline) {
+                routePolyline.remove();
+                routePolyline = null;
+            }
+            
+            markerLayers.forEach(marker => marker.remove());
+            markerLayers = [];
+            
+            if (startMarker) {
+                startMarker.remove();
+                startMarker = null;
+            }
+            
+            if (endMarker) {
+                endMarker.remove();
+                endMarker = null;
+            }
+
+            document.getElementById('markerListContainer').style.display = 'none';
+        }
+
+        // Show instructions
+        console.log('Route Viewer loaded. Select a route JSON file to display.');
+    </script>
+</body>
+</html>

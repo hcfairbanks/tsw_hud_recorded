@@ -1,0 +1,23 @@
+======================================================================
+File: Screenshot 2026-01-03 094252.png (SERVICE NAME)
+======================================================================
+741-06 - Kilburn High Road to Harrow & Wealdstone 01:45 00:25
+
+
+
+======================================================================
+File: Screenshot 2026-01-03 094412.png
+======================================================================
+WAIT FOR SERVICE Service is scheduled to start at 01:45:00
+
+
+
+======================================================================
+File: Screenshot 2026-01-03 094422.png
+======================================================================
+WAIT Wait for a moment +01:47:00
+STOP AT LOCATION Queen's Park Platform 4 -
+STOP AT LOCATION Harrow & Wealdstone Platform 1 -
+STOP AT LOCATION Harrow & Wealdstone Centre Siding -
+
+

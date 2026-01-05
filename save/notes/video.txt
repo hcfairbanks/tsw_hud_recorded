@@ -1,0 +1,5 @@
+https://www.youtube.com/watch?v=PlUZ1jeVpcg
+
+
+Third Rails format in CSV is:
+Destination Arrival Departure Platform
