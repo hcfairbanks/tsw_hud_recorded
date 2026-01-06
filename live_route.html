@@ -102,8 +102,8 @@
             text-align: center;
         }
         .game-time {
-            font-size: 14px;
-            font-weight: normal;
+            font-size: 32px;
+            font-weight: bold;
             margin-bottom: 8px;
             opacity: 0.9;
             font-family: 'Courier New', monospace;
@@ -145,6 +145,25 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 11px;
+            margin-right: 5px;
+        }
+
+        .clear-coords-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .clear-coords-btn:hover {
+            background: #c82333;
+        }
+
+        .clear-coords-btn:active {
+            background: #bd2130;
         }
 
         .copy-position-btn {
@@ -360,7 +379,10 @@
             <div class="info-item" style="flex-direction: column; align-items: flex-start;">
                 <span class="info-label" style="margin-bottom: 5px;">Click map or marker to capture</span>
                 <div class="coords-display" id="coordsDisplay">No coordinates selected</div>
-                <button class="copy-coords-btn" id="copyBtn" style="display: none;">Copy Coordinates</button>
+                <div>
+                    <button class="copy-coords-btn" id="copyBtn" style="display: none;">Copy</button>
+                    <button class="clear-coords-btn" id="clearBtn" style="display: none;" onclick="clearCoordinates()">Clear</button>
+                </div>
             </div>
         </div>
 
@@ -429,27 +451,38 @@
         function updateCoordinates(lng, lat) {
             const coordsDisplay = document.getElementById('coordsDisplay');
             const copyBtn = document.getElementById('copyBtn');
+            const clearBtn = document.getElementById('clearBtn');
             
             coordsDisplay.textContent = `      "longitude": ${lng},\n      "latitude": ${lat},`;
-            copyBtn.style.display = 'block';
+            copyBtn.style.display = 'inline-block';
+            clearBtn.style.display = 'inline-block';
             
             // Store for copying
             copyBtn.onclick = function() {
                 const text = `      "longitude": ${lng},\n      "latitude": ${lat},`;
                 navigator.clipboard.writeText(text).then(() => {
-                    const originalText = copyBtn.textContent;
                     copyBtn.textContent = 'Copied!';
                     setTimeout(() => {
-                        copyBtn.textContent = originalText;
+                        copyBtn.textContent = 'Copy';
                     }, 1500);
                 }).catch(err => {
                     console.error('Failed to copy:', err);
-                    copyBtn.textContent = 'Copy failed';
+                    copyBtn.textContent = 'Failed';
                     setTimeout(() => {
-                        copyBtn.textContent = 'Copy Coordinates';
+                        copyBtn.textContent = 'Copy';
                     }, 1500);
                 });
             };
+        }
+
+        function clearCoordinates() {
+            const coordsDisplay = document.getElementById('coordsDisplay');
+            const copyBtn = document.getElementById('copyBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            
+            coordsDisplay.textContent = 'No coordinates selected';
+            copyBtn.style.display = 'none';
+            clearBtn.style.display = 'none';
         }
 
         function copyCurrentPosition() {

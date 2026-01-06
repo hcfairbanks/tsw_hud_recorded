@@ -1,0 +1,19 @@
+1. Milton Keynes Platform 1 => MiltonKyns 1
+"longitude": -0.77387140291936962,
+"latitude": 52.033895388746444
+
+2. Bletchley 4
+
+3. Leighton Buzzard 4
+
+4. Tring 5
+
+5. Berkhamsted 4
+
+6. Hemel Hempstead 4
+
+7. Watford Junction 9 => Watford Jn 9
+
+8. Harrow & Wealdstone 6
+
+9. London Euston 8 => Euston 8

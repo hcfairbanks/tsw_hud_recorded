@@ -2,6 +2,8 @@
   "routeName": "1Y08 Northampton - London Euston 0705 0044",
   "totalPoints": 10738,
   "totalMarkers": 38,
+  "startTime": "2026-01-04T03:01:07.348Z",
+  "endTime": "2026-01-04T03:59:27.326Z",
   "duration": 3499978,
   "requestCount": 10738,
   "coordinates": [
@@ -64437,271 +64439,583 @@
     {
       "stationName": "Milton Keynes Central",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.7738713076928851,
+        "latitude": 52.033895393491754
+      },
+      "distanceAheadMeters": 0.049570465087890626,
+      "timestamp": "2026-01-04T03:01:07.888Z",
+      "platformLength": 26186.4921875,
       "latitude": 52.03389521828586,
       "longitude": -0.7738713059988479,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "MiltonKyns 1",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.7738713076928851,
+        "latitude": 52.033895393491754
+      },
+      "distanceAheadMeters": 5.4232666015625,
+      "timestamp": "2026-01-04T03:01:07.888Z",
+      "platformLength": 26186.4921875,
       "latitude": 52.03385745664769,
       "longitude": -0.7738222892692803,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": true
     },
     {
       "stationName": "Bletchley",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.7738714510454678,
+        "latitude": 52.03389533829392
+      },
+      "distanceAheadMeters": 4917.5090625,
+      "timestamp": "2026-01-04T03:01:58.450Z",
+      "platformLength": 26164.18359375,
       "latitude": 51.99714483565139,
       "longitude": -0.7366645602060966,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Bletchley Up Slow Line",
       "markerType": "Destination",
+      "detectedAt": {
+        "longitude": -0.7738714510454678,
+        "latitude": 52.03389533829392
+      },
+      "distanceAheadMeters": 4620.13,
+      "timestamp": "2026-01-04T03:01:58.450Z",
+      "platformLength": 14951.572265625,
       "latitude": 51.999761604564846,
       "longitude": -0.7375610526928504,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Bletchley 4",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.7738714510454678,
+        "latitude": 52.03389533829392
+      },
+      "distanceAheadMeters": 5179.15125,
+      "timestamp": "2026-01-04T03:01:58.465Z",
+      "platformLength": 26164.18359375,
+      "onspot_latitude": 51.99456903297106,
+      "onspot_longitude": -0.7358606477273582,
+      "onspot_timestamp": "2026-01-04T03:15:18.026Z",
+      "spoton_distance": 1.9481396484375,
       "latitude": 51.99455176131636,
       "longitude": -0.7358558734609895,
+      "calculationMethod": "onspot",
       "isTimetableStation": true
     },
     {
       "stationName": "Linslade Tunnel Up Slow",
       "markerType": "Tunnel",
+      "detectedAt": {
+        "longitude": -0.7328341697820253,
+        "latitude": 51.98437240815006
+      },
+      "distanceAheadMeters": 7862.005,
+      "timestamp": "2026-01-04T03:16:37.376Z",
+      "platformLength": 25932.541015625,
       "latitude": 51.927458174035365,
       "longitude": -0.6772123320464516,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Leighton Buzzard",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.7296981978501949,
+        "latitude": 51.97450301687681
+      },
+      "distanceAheadMeters": 7756.49875,
+      "timestamp": "2026-01-04T03:17:16.395Z",
+      "platformLength": 25075.771484375,
       "latitude": 51.918572284328526,
       "longitude": -0.6762806922831704,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Leighton Buzzard 4",
       "markerType": "Platform",
-      "latitude": 51.91444291401528,
-      "longitude": -0.6776790015873395,
+      "detectedAt": {
+        "longitude": -0.7296981978501949,
+        "latitude": 51.97450301687681
+      },
+      "distanceAheadMeters": 7756.49875,
+      "timestamp": "2026-01-04T03:17:16.407Z",
+      "platformLength": 25075.771484375,
+      "onspot_latitude": 51.91445664155349,
+      "onspot_longitude": -0.6776757739854804,
+      "onspot_timestamp": "2026-01-04T03:22:55.964Z",
+      "spoton_distance": 1.54240234375,
+      "latitude": 51.915794391325434,
+      "longitude": -0.67731494302161144,
+      "calculationMethod": "onspot",
       "isTimetableStation": true
     },
     {
       "stationName": "Cheddington",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.6789464846150262,
+        "latitude": 51.929922483770305
+      },
+      "distanceAheadMeters": 7999.725,
+      "timestamp": "2026-01-04T03:20:04.979Z",
+      "platformLength": 23878.921875,
       "latitude": 51.85955490488314,
       "longitude": -0.6624984654515697,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Cheddington 4",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.6789464846150262,
+        "latitude": 51.929922483770305
+      },
+      "distanceAheadMeters": 7999.725,
+      "timestamp": "2026-01-04T03:20:04.993Z",
+      "platformLength": 23878.921875,
       "latitude": 51.85955490488314,
       "longitude": -0.6624984654515697,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Cheddington 2",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.6777733432098403,
+        "latitude": 51.91402229983543
+      },
+      "distanceAheadMeters": 6412.16,
+      "timestamp": "2026-01-04T03:23:01.074Z",
+      "platformLength": 28558.201171875,
       "latitude": 51.857443489562286,
       "longitude": -0.6617407059390755,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Tring",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.6649440214079507,
+        "latitude": 51.86648543658356
+      },
+      "distanceAheadMeters": 7994.34375,
+      "timestamp": "2026-01-04T03:26:12.406Z",
+      "platformLength": 25106.00390625,
       "latitude": 51.800797587280414,
       "longitude": -0.6226536097662375,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Tring 2",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.6649440214079507,
+        "latitude": 51.86648543658356
+      },
+      "distanceAheadMeters": 7994.34375,
+      "timestamp": "2026-01-04T03:26:12.418Z",
+      "platformLength": 25106.00390625,
       "latitude": 51.800797587280414,
       "longitude": -0.6226536097662375,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Northchurch Tunnel Up Fast",
       "markerType": "Tunnel",
+      "detectedAt": {
+        "longitude": -0.6518974673235709,
+        "latitude": 51.8301686129156
+      },
+      "distanceAheadMeters": 7949.8775,
+      "timestamp": "2026-01-04T03:28:29.505Z",
+      "platformLength": 5876.314453125,
       "latitude": 51.7723730950899,
       "longitude": -0.5870897179232706,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Northchurch Tunnel Down Fast",
       "markerType": "Tunnel",
+      "detectedAt": {
+        "longitude": -0.651679021343512,
+        "latitude": 51.82967333401527
+      },
+      "distanceAheadMeters": 7993.386875,
+      "timestamp": "2026-01-04T03:28:31.050Z",
+      "platformLength": 26587.490234375,
       "latitude": 51.77174527259552,
       "longitude": -0.5860371549658829,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Berkhamsted",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.6403626921675953,
+        "latitude": 51.81621775023325
+      },
+      "distanceAheadMeters": 7993.126875,
+      "timestamp": "2026-01-04T03:29:15.205Z",
+      "platformLength": 26469.779296875,
       "latitude": 51.7639310466463,
       "longitude": -0.5652600028011547,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Berkhamsted 2",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.6403626921675953,
+        "latitude": 51.81621775023325
+      },
+      "distanceAheadMeters": 7993.126875,
+      "timestamp": "2026-01-04T03:29:15.221Z",
+      "platformLength": 26469.779296875,
       "latitude": 51.7639310466463,
       "longitude": -0.5652600028011547,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Hemel Hempstead",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.5935786131598695,
+        "latitude": 51.77595079178523
+      },
+      "distanceAheadMeters": 7993.600625,
+      "timestamp": "2026-01-04T03:31:25.249Z",
+      "platformLength": 24372.935546875,
       "latitude": 51.74249116983655,
       "longitude": -0.4923521340024441,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Hemel Hempstead 2",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.5935786131598695,
+        "latitude": 51.77595079178523
+      },
+      "distanceAheadMeters": 7993.600625,
+      "timestamp": "2026-01-04T03:31:25.262Z",
+      "platformLength": 24372.935546875,
       "latitude": 51.74249116983655,
       "longitude": -0.4923521340024441,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Apsley",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.5665704341462314,
+        "latitude": 51.764138069449565
+      },
+      "distanceAheadMeters": 7997.37625,
+      "timestamp": "2026-01-04T03:32:16.946Z",
+      "platformLength": 20480.8984375,
       "latitude": 51.73251683779786,
       "longitude": -0.4633214201630599,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Apsley 2",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.5665704341462314,
+        "latitude": 51.764138069449565
+      },
+      "distanceAheadMeters": 7997.37625,
+      "timestamp": "2026-01-04T03:32:16.958Z",
+      "platformLength": 20480.8984375,
       "latitude": 51.73251683779786,
       "longitude": -0.4633214201630599,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Kings Langley",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.522724462820662,
+        "latitude": 51.74975800931226
+      },
+      "distanceAheadMeters": 7788.448125,
+      "timestamp": "2026-01-04T03:38:11.818Z",
+      "platformLength": 21645.27734375,
       "latitude": 51.70873266157642,
       "longitude": -0.43874110037716924,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Kings Langley 2",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.522724462820662,
+        "latitude": 51.74975800931226
+      },
+      "distanceAheadMeters": 7788.448125,
+      "timestamp": "2026-01-04T03:38:11.833Z",
+      "platformLength": 21645.27734375,
       "latitude": 51.70873266157642,
       "longitude": -0.43874110037716924,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Watford Tunnel Up Fast",
       "markerType": "Tunnel",
+      "detectedAt": {
+        "longitude": -0.49016527082541606,
+        "latitude": 51.742012657422066
+      },
+      "distanceAheadMeters": 7363.3475,
+      "timestamp": "2026-01-04T03:39:11.174Z",
+      "platformLength": 165592.6875,
       "latitude": 51.69162203091472,
       "longitude": -0.43149915528930155,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Watford Junction",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.45256526166287525,
+        "latitude": 51.72616663906736
+      },
+      "distanceAheadMeters": 7720.46875,
+      "timestamp": "2026-01-04T03:40:20.690Z",
+      "platformLength": 28492.890625,
       "latitude": 51.666730220282524,
       "longitude": -0.39981741433176127,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Watford Jn 7",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.45256526166287525,
+        "latitude": 51.72616663906736
+      },
+      "distanceAheadMeters": 7720.46875,
+      "timestamp": "2026-01-04T03:40:20.702Z",
+      "platformLength": 28492.890625,
       "latitude": 51.666730220282524,
       "longitude": -0.39981741433176127,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Bushey",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.4381535804660257,
+        "latitude": 51.70683197508882
+      },
+      "distanceAheadMeters": 7992.431875,
+      "timestamp": "2026-01-04T03:41:15.925Z",
+      "platformLength": 19636.50390625,
       "latitude": 51.64560705317269,
       "longitude": -0.3848407371134526,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Bushey 4",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.4381535804660257,
+        "latitude": 51.70683197508882
+      },
+      "distanceAheadMeters": 7992.431875,
+      "timestamp": "2026-01-04T03:41:15.938Z",
+      "platformLength": 19636.50390625,
       "latitude": 51.64560705317269,
       "longitude": -0.3848407371134526,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Harrow & Wealdstone",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.3839776992570032,
+        "latitude": 51.65123765442019
+      },
+      "distanceAheadMeters": 7999.968125,
+      "timestamp": "2026-01-04T03:44:09.114Z",
+      "platformLength": 20386.8828125,
       "latitude": 51.59241357856804,
       "longitude": -0.33515092100606936,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Harrow & Wealdstone 4",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.3839776992570032,
+        "latitude": 51.65123765442019
+      },
+      "distanceAheadMeters": 7999.968125,
+      "timestamp": "2026-01-04T03:44:09.128Z",
+      "platformLength": 20386.8828125,
       "latitude": 51.59241357856804,
       "longitude": -0.33515092100606936,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Wembley Central",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.3654079731273159,
+        "latitude": 51.60746322407389
+      },
+      "distanceAheadMeters": 7998.79125,
+      "timestamp": "2026-01-04T03:46:07.213Z",
+      "platformLength": 18031.15625,
       "latitude": 51.55232563919253,
       "longitude": -0.296548389675711,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Wembley Central 4",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.3654079731273159,
+        "latitude": 51.60746322407389
+      },
+      "distanceAheadMeters": 7998.79125,
+      "timestamp": "2026-01-04T03:46:07.226Z",
+      "platformLength": 18031.15625,
       "latitude": 51.55232563919253,
       "longitude": -0.296548389675711,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Kensal Green Tunnel Up Fast",
       "markerType": "Tunnel",
+      "detectedAt": {
+        "longitude": -0.31029193951088363,
+        "latitude": 51.573762122980895
+      },
+      "distanceAheadMeters": 7707.301875,
+      "timestamp": "2026-01-04T03:48:21.535Z",
+      "platformLength": 29562.046875,
       "latitude": 51.530060839739726,
       "longitude": -0.23308375703085846,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Primrose Hill Tunnel Up Fast Line",
       "markerType": "Tunnel",
+      "detectedAt": {
+        "longitude": -0.2832688214228529,
+        "latitude": 51.54415760673428
+      },
+      "distanceAheadMeters": 7955.103125,
+      "timestamp": "2026-01-04T03:49:46.228Z",
+      "platformLength": 108114.703125,
       "latitude": 51.54127246709113,
       "longitude": -0.17710598270929134,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Park Village Tunnel Line D",
       "markerType": "Tunnel",
+      "detectedAt": {
+        "longitude": -0.252604871331632,
+        "latitude": 51.534049396551374
+      },
+      "distanceAheadMeters": 7855.058125,
+      "timestamp": "2026-01-04T03:50:52.978Z",
+      "platformLength": 14536.236328125,
       "latitude": 51.53823375695815,
       "longitude": -0.14771176469176323,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "London Euston",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.23856033238472252,
+        "latitude": 51.53051239376172
+      },
+      "distanceAheadMeters": 7999.514375,
+      "timestamp": "2026-01-04T03:51:24.309Z",
+      "platformLength": 30055.080078125,
       "latitude": 51.53019123003052,
       "longitude": -0.1364643782234883,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Euston 12",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.23856033238472252,
+        "latitude": 51.53051239376172
+      },
+      "distanceAheadMeters": 7999.514375,
+      "timestamp": "2026-01-04T03:51:24.322Z",
+      "platformLength": 30055.080078125,
       "latitude": 51.53019123003052,
       "longitude": -0.1364643782234883,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": false
     },
     {
       "stationName": "Euston 11",
       "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.15479523470175627,
+        "latitude": 51.54279562679319
+      },
+      "distanceAheadMeters": 2198.33015625,
+      "timestamp": "2026-01-04T03:54:51.835Z",
+      "platformLength": 25372.375,
       "latitude": 51.528335112916785,
       "longitude": -0.13402953998496514,
+      "calculationMethod": "detectedAt",
       "isTimetableStation": true
     }
   ],
-  "timetable": [
+    "timetable": [
     {
       "index": 0,
       "destination": "Milton Keynes",
@@ -64734,5 +65048,8 @@
       "platform": "11",
       "apiName": "Euston 11"
     }
-  ]
+  ],
+  "markersProcessed": true,
+  "markersProcessedTimestamp": "2026-01-04T17:40:26.584Z",
+  "processingVersion": "1.0.0"
 }

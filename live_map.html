@@ -6,73 +6,328 @@
     <title>Live Train Map</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body {
+        * {
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
+            box-sizing: border-box;
         }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+
+        @keyframes recording-glow {
+            0%, 100% {
+                opacity: 1;
+                filter: drop-shadow(0 0 3px #ff0000);
+            }
+            50% {
+                opacity: 0.6;
+                filter: drop-shadow(0 0 8px #ff0000) drop-shadow(0 0 12px #ff0000);
+            }
+        }
+
+        .recording-indicator {
+            color: #ff0000;
+            display: inline-block;
+            animation: recording-glow 1.5s ease-in-out infinite;
+        }
+
         #map {
             position: absolute;
             top: 0;
             bottom: 0;
             width: 100%;
         }
+
         .info-panel {
             position: absolute;
-            top: 10px;
+            top: 10%;
             right: 10px;
             background: white;
-            padding: 15px;
-            border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             z-index: 1000;
-            max-width: 300px;
+            min-width: 320px;
         }
-        .info-panel h3 {
-            margin-top: 0;
+
+        .info-panel h2 {
+            margin: 0 0 15px 0;
             color: #333;
+            font-size: 18px;
+            border-bottom: 2px solid #0066ff;
+            padding-bottom: 10px;
         }
-        .info-item {
-            margin: 5px 0;
+
+        .info-group {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .info-group h3 {
             font-size: 14px;
+            color: #000;
+            margin-bottom: 10px;
+            font-weight: 600;
         }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 6px 0;
+            font-size: 13px;
+        }
+
         .info-label {
-            font-weight: bold;
             color: #666;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: bold;
+        }
+
+        .timetable-display {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .game-time {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            opacity: 0.9;
+            font-family: 'Courier New', monospace;
+        }
+
+        .timetable-time {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .timetable-label {
+            font-size: 14px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .distance-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            margin-top: 10px;
+        }
+
+        .copy-coords-btn {
+            background: #0066ff;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            margin-top: 8px;
+            margin-right: 5px;
+        }
+
+        .copy-coords-btn:hover {
+            background: #0052cc;
+        }
+
+        .copy-coords-btn:active {
+            background: #003d99;
+        }
+
+        .clear-coords-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            margin-top: 8px;
+        }
+
+        .clear-coords-btn:hover {
+            background: #c82333;
+        }
+
+        .clear-coords-btn:active {
+            background: #bd2130;
+        }
+
+        .copy-position-btn {
+            background: #0066ff;
+            color: white;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 9px;
+            margin-top: 2px;
+            display: block;
+        }
+
+        .copy-position-btn:hover {
+            background: #0052cc;
+        }
+
+        .copy-position-btn:active {
+            background: #003d99;
+        }
+
+        .coords-display {
+            background: #ffffff;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            margin-top: 5px;
+            white-space: pre;
+            border: 1px solid #ddd;
         }
         .status-indicator {
             display: inline-block;
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            margin-right: 5px;
+            margin-right: 8px;
         }
+
         .status-connected {
             background-color: #00cc66;
+            box-shadow: 0 0 6px #00cc66;
         }
+
         .status-disconnected {
             background-color: #ff0000;
+            box-shadow: 0 0 6px #ff0000;
+        }
+        .legend {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        .legend h3 {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 6px 0;
+            font-size: 12px;
+        }
+        .legend-color {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .legend-line {
+            width: 20px;
+            height: 4px;
+            margin-right: 10px;
+            border-radius: 2px;
         }
     </style>
 </head>
 <body>
     <div id="map"></div>
+    
     <div class="info-panel">
-        <h3>Live Train Tracker</h3>
-        <div class="info-item">
+        <h2><span class="recording-indicator">●</span> Recording</h2>
+        
+        <div class="info-item" style="margin-bottom: 15px;">
             <span class="status-indicator" id="statusIndicator"></span>
             <span id="connectionStatus">Connecting...</span>
         </div>
-        <div class="info-item"><span class="info-label">Route:</span> <span id="routeName">-</span></div>
-        <div class="info-item"><span class="info-label">Speed:</span> <span id="speed">-</span> km/h</div>
-        <div class="info-item"><span class="info-label">Direction:</span> <span id="direction">-</span></div>
-        <div class="info-item"><span class="info-label">Total Points:</span> <span id="totalPoints">0</span></div>
-        <div class="info-item"><span class="info-label">Total Markers:</span> <span id="totalMarkers">0</span></div>
-        <div class="info-item"><span class="info-label">Current Position:</span><br>
-            <span style="font-size: 11px;">
-                Lat: <span id="currentLat">-</span><br>
-                Lng: <span id="currentLng">-</span>
-            </span>
+
+        <div class="timetable-display" id="timetableDisplay" style="display: none;">
+            <div class="game-time" id="gameTime">--:--:--</div>
+            <div class="timetable-time" id="timetableTime">--:--</div>
+            <div class="timetable-label" id="timetableLabel">Next Stop</div>
+            <div class="distance-display" id="distanceDisplay" style="display: none;">
+                <span id="distanceValue">0</span> m
+            </div>
+        </div>
+        
+        <div class="info-group">
+            <h3 id="routeName">Live Route</h3>
+            <div class="info-item">
+                <span class="info-label">Total Points:</span>
+                <span class="info-value" id="totalPoints">0</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Markers:</span>
+                <span class="info-value" id="totalMarkers">0</span>
+            </div>
+        </div>
+
+        <div class="info-group">
+            <h3>Train Status</h3>
+            <div class="info-item">
+                <span class="info-label">Speed:</span>
+                <span class="info-value"><span id="speed">0</span> km/h</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Direction:</span>
+                <span class="info-value" id="direction">-</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Position:</span>
+                <span class="info-value" style="font-size: 11px;">
+                    <div>Lat: <span id="currentLat">-</span></div>
+                    <div>Lng: <span id="currentLng">-</span></div>
+                    <button class="copy-position-btn" id="copyPositionBtn" onclick="copyCurrentPosition()">Copy</button>
+                </span>
+            </div>
+        </div>
+
+        <div class="info-group">
+            <h3>Coordinates</h3>
+            <div class="info-item" style="flex-direction: column; align-items: flex-start;">
+                <span class="info-label" style="margin-bottom: 5px;">Click map or marker to capture</span>
+                <div class="coords-display" id="coordsDisplay">No coordinates selected</div>
+                <div>
+                    <button class="copy-coords-btn" id="copyBtn" style="display: none;">Copy</button>
+                    <button class="clear-coords-btn" id="clearBtn" style="display: none;" onclick="clearCoordinates()">Clear</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <h3>Map Legend</h3>
+            <div class="legend-item">
+                <div class="legend-line" style="background: #0066ff;"></div>
+                <span>Route Path</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #00cc66;"></div>
+                <span>Starting Position</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ffa500;"></div>
+                <span>Live Train Position</span>
+            </div>
         </div>
     </div>
 
@@ -82,9 +337,23 @@
         const map = L.map('map').setView([52.0, -0.5], 10);
 
         // Add OpenStreetMap tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // (Removed duplicate default OSM layer to avoid conflict with selector)
+
+        // Add tile layers for selector
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
             maxZoom: 19
+        });
+        const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles © Esri',
+            maxZoom: 19
+        });
+        // Set default layer
+        osm.addTo(map);
+        // Layer control
+        L.control.layers({
+            'Geographic': osm,
+            'Satellite': satellite
         }).addTo(map);
 
         // Store path coordinates
@@ -95,12 +364,45 @@
         let stationMarkers = new Map(); // Track timetable station markers
         let firstPosition = true;
 
+        // Store previous route data
+        let previousRoutePolyline = null;
+        // Load previous route data on page load
+        fetch('/previous-route')
+            .then(response => response.json())
+            .then(routeData => {
+                if (routeData.coordinates && routeData.coordinates.length > 0) {
+                    // Draw previous route with same style as current route
+                    const previousCoords = routeData.coordinates.map(c => [c.latitude, c.longitude]);
+                    previousRoutePolyline = L.polyline(previousCoords, {
+                        color: '#0066ff',
+                        weight: 4,
+                        opacity: 0.7
+                    }).addTo(map);
+
+                    // Add a green marker for the starting point
+                    const start = previousCoords[0];
+                    L.circleMarker(start, {
+                        radius: 8,
+                        fillColor: '#00cc66',
+                        color: '#fff',
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.9
+                    }).bindPopup('Start Point').addTo(map);
+
+                    console.log(`Loaded previous route: ${routeData.coordinates.length} points`);
+                }
+            })
+            .catch(err => {
+                console.log('No previous route data available:', err);
+            });
+
         // Create custom train icon
         const trainIcon = L.divIcon({
             className: 'train-icon',
-            html: '<div style="background: #0066ff; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>',
-            iconSize: [16, 16],
-            iconAnchor: [8, 8]
+            html: '<div style="background: #ffa500; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(255,165,0,0.8), 0 2px 6px rgba(0,0,0,0.3);"></div>',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
         });
 
         // Direction mapping
@@ -143,8 +445,8 @@
                             const lng = geoLocation.longitude;
 
                             // Update current position display
-                            document.getElementById('currentLat').textContent = lat.toFixed(6);
-                            document.getElementById('currentLng').textContent = lng.toFixed(6);
+                            document.getElementById('currentLat').textContent = lat;
+                            document.getElementById('currentLng').textContent = lng;
 
                             // Add to path if different from last position
                             if (pathCoordinates.length === 0 || 
@@ -263,7 +565,88 @@
             if (data.timetableLabel) {
                 document.getElementById('routeName').textContent = data.timetableLabel;
             }
+
+            // Update timetable display if available
+            if (data.localTime && data.timetableTime) {
+                const timetableDisplay = document.getElementById('timetableDisplay');
+                timetableDisplay.style.display = 'block';
+                
+                // Extract just the time part from ISO8601 string
+                const timePart = data.localTime.split('T')[1].split('.')[0];
+                document.getElementById('gameTime').textContent = timePart;
+                
+                document.getElementById('timetableTime').textContent = data.timetableTime || '--:--';
+                document.getElementById('timetableLabel').textContent = data.timetableLabel || 'Next Stop';
+                
+                // Show distance if available
+                const distanceDisplay = document.getElementById('distanceDisplay');
+                if (data.distanceToStation !== null && data.distanceToStation !== undefined) {
+                    distanceDisplay.style.display = 'block';
+                    document.getElementById('distanceValue').textContent = data.distanceToStation;
+                } else {
+                    distanceDisplay.style.display = 'none';
+                }
+            }
         };
+
+        // Add click handler to capture coordinates
+        map.on('click', function(e) {
+            updateCoordinates(e.latlng.lng, e.latlng.lat);
+        });
+
+        // Function to update coordinates display
+        function updateCoordinates(lng, lat) {
+            const coordsDisplay = document.getElementById('coordsDisplay');
+            const copyBtn = document.getElementById('copyBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            
+            coordsDisplay.textContent = `Latitude: ${lat}\nLongitude: ${lng}`;
+            copyBtn.style.display = 'inline-block';
+            clearBtn.style.display = 'inline-block';
+            
+            // Store coordinates for copying
+            copyBtn.onclick = function() {
+                const text = `      "longitude": ${lng},\n      "latitude": ${lat},`;
+                navigator.clipboard.writeText(text).then(() => {
+                    copyBtn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyBtn.textContent = 'Copy';
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                });
+            };
+        }
+
+        // Function to clear coordinates display
+        function clearCoordinates() {
+            const coordsDisplay = document.getElementById('coordsDisplay');
+            const copyBtn = document.getElementById('copyBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            
+            coordsDisplay.textContent = 'No coordinates selected';
+            copyBtn.style.display = 'none';
+            clearBtn.style.display = 'none';
+        }
+
+        // Function to copy current position
+        function copyCurrentPosition() {
+            const lat = document.getElementById('currentLat').textContent;
+            const lng = document.getElementById('currentLng').textContent;
+            
+            if (lat !== '-' && lng !== '-') {
+                const text = `      "longitude": ${lng},\n      "latitude": ${lat},`;
+                navigator.clipboard.writeText(text).then(() => {
+                    const btn = document.getElementById('copyPositionBtn');
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        btn.textContent = 'Copy';
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                });
+            }
+        }
     </script>
 </body>
 </html>

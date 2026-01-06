@@ -368,15 +368,15 @@ function writeToJSONRouteSkeleton(data, serviceNames, extraData) {
     fs.mkdirSync(OUTPUT_UNPROCESSED_DIR, { recursive: true });
   }
   
-  let filename = 'route_template.json';
+  let filename = 'raw_data_template.json';
   
   if (serviceNames.length > 0) {
     let fullService = serviceNames[0];
     // Remove unwanted characters but preserve ' & ' (ampersand with spaces)
-    fullService = fullService.replace(/[\[\]\(\)%¥£€$@#*!~`^{}|]/g, '').replace(/&(?! )/g, '').replace(/(?<! )&/g, '').trim();
+    fullService = fullService.replace(/[[\]()%¥£€$@#*!~`^{}|]/g, '').replace(/&(?! )/g, '').replace(/(?<! )&/g, '').trim();
     // Remove colon and replace other filesystem-unsafe characters with hyphen
     const safeFilename = fullService.replace(/:/g, '').replace(/[<>"/\\|?*]/g, '-');
-    filename = 'route_' + safeFilename + '.json';
+    filename = 'raw_data_' + safeFilename + '.json';
   }
   
   const outputFile = path.join(OUTPUT_UNPROCESSED_DIR, filename);
@@ -642,4 +642,32 @@ async function main() {
   } else { console.log('\nNo data extracted from images.'); }
 }
 
-main().catch(console.error);
+main().catch(console.error).then(async () => {
+  // Find the last written raw_data_*.json file
+  const unprocessedDir = OUTPUT_UNPROCESSED_DIR;
+  const rawDataDir = path.resolve('./raw_data');
+  if (!fs.existsSync(rawDataDir)) {
+    fs.mkdirSync(rawDataDir, { recursive: true });
+  }
+  const files = fs.readdirSync(unprocessedDir).filter(f => f.startsWith('raw_data_') && f.endsWith('.json'));
+  if (files.length > 0) {
+    // Get the most recently modified file
+    const latest = files.map(f => ({
+      file: f,
+      mtime: fs.statSync(path.join(unprocessedDir, f)).mtimeMs
+    })).sort((a, b) => b.mtime - a.mtime)[0].file;
+    const base = latest.replace(/\.json$/, '');
+    const destDir = path.join(rawDataDir, base);
+    if (!fs.existsSync(destDir)) {
+      fs.mkdirSync(destDir, { recursive: true });
+    }
+    // Move all images from timetable_images to destDir
+    const images = fs.readdirSync(IMAGE_DIR).filter(f => /\.(jpg|jpeg|png)$/i.test(f));
+    for (const img of images) {
+      const src = path.join(IMAGE_DIR, img);
+      const dest = path.join(destDir, img);
+      fs.renameSync(src, dest);
+      console.log(`Moved image ${img} to ${destDir}`);
+    }
+  }
+});

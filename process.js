@@ -334,20 +334,38 @@ function main() {
     const flags = process.argv.slice(2).filter(arg => arg.startsWith('--'));
 
     if (args.length === 0) {
-        console.log('\nUsage: node process_trip.js <input_file> [output_file] [--force]');
-        console.log('       node process_trip.js --all [--force]');
-        console.log('\nDescription:');
-        console.log('  Calculates latitude and longitude for each marker using:');
-        console.log('  1. onspot_latitude/longitude + spoton_distance (preferred)');
-        console.log('  2. detectedAt position + distanceAheadMeters (fallback)');
-        console.log('\nExamples:');
-        console.log('  node process_trip.js unprocessed_routes/route_1Y08.json');
-        console.log('  node process_trip.js unprocessed_routes/route_1Y08.json processed_routes/route_1Y08.json');
-        console.log('  node process_trip.js --all');
-        console.log('  node process_trip.js unprocessed_routes/route_1Y08.json --force');
-        console.log('\nFlags:');
-        console.log('  --all    Process all route files in unprocessed_routes/ directory');
-        console.log('  --force  Reprocess files that have already been processed');
+        // Automatically process the only .json file in unprocessed_routes
+        const routesDir = path.join(__dirname, 'unprocessed_routes');
+        if (!fs.existsSync(routesDir)) {
+            console.error(`\nError: Directory not found: ${routesDir}`);
+            return;
+        }
+        const files = fs.readdirSync(routesDir).filter(f => f.endsWith('.json'));
+        if (files.length === 0) {
+            console.error(`\nError: No .json files found in unprocessed_routes/`);
+            return;
+        }
+        if (files.length > 1) {
+            console.error(`\nError: More than one .json file found in unprocessed_routes/. Please ensure only one file is present.`);
+            return;
+        }
+        const inputFile = files[0];
+        const inputPath = path.join(routesDir, inputFile);
+        const processedDir = path.join(__dirname, 'processed_routes');
+        if (!fs.existsSync(processedDir)) {
+            fs.mkdirSync(processedDir, { recursive: true });
+            console.log('Created processed_routes directory');
+        }
+        // Remove 'raw_data_' prefix if present
+        let outputFile = inputFile.startsWith('raw_data_') ? inputFile.replace(/^raw_data_/, '') : inputFile;
+        const outputPath = path.join(processedDir, outputFile);
+        try {
+            processRouteFile(inputPath, outputPath);
+            console.log(`\n✓ Processing completed successfully\n`);
+        } catch (error) {
+            console.error(`\n✗ Error: ${error.message}\n`);
+            process.exit(1);
+        }
         return;
     }
 
@@ -447,3 +465,22 @@ function main() {
 
 // Run main function
 main();
+
+// After processing, move the file to raw_data folder
+const routesDir = path.join(__dirname, 'unprocessed_routes');
+const rawDataDir = path.join(__dirname, 'raw_data');
+if (fs.existsSync(routesDir)) {
+    const files = fs.readdirSync(routesDir).filter(f => f.endsWith('.json'));
+    if (files.length === 1) {
+        const file = files[0];
+        const srcPath = path.join(routesDir, file);
+        const base = file.replace(/\.json$/, '');
+        const destDir = path.join(rawDataDir, base);
+        if (!fs.existsSync(destDir)) {
+            fs.mkdirSync(destDir, { recursive: true });
+        }
+        const destPath = path.join(destDir, file);
+        fs.renameSync(srcPath, destPath);
+        console.log(`Moved processed file to ${destDir}`);
+    }
+}

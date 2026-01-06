@@ -161,13 +161,13 @@ function initializeRouteFile() {
 
     // Look for any route skeleton file in unprocessed_routes
     const existingFiles = fs.readdirSync(outputDir)
-        .filter(f => f.startsWith('route_') && f.endsWith('.json'))
-        .sort()
-        .reverse(); // Most recent first
+      .filter(f => f.startsWith('raw_data_') && f.endsWith('.json'))
+      .sort()
+      .reverse(); // Most recent first
     
     if (existingFiles.length > 0) {
-        // Use the first (most recent) skeleton file found
-        const skeletonFileName = existingFiles[0];
+      // Use the first (most recent) skeleton file found
+      const skeletonFileName = existingFiles[0];
         routeOutputFilePath = path.join(outputDir, skeletonFileName);
         console.log(`Found existing route skeleton: ${skeletonFileName}`);
         console.log('Route data will be added to this file');
@@ -387,6 +387,36 @@ const server = http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end(data);
       }
+    });
+  }
+  // Serve the previous route data from unprocessed_routes
+  else if (req.url === '/previous-route') {
+    const unprocessedDir = path.join(__dirname, 'unprocessed_routes');
+    fs.readdir(unprocessedDir, (err, files) => {
+      if (err) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ coordinates: [], markers: [] }));
+        return;
+      }
+      
+      // Find the first .json file
+      const jsonFile = files.find(f => f.endsWith('.json'));
+      if (!jsonFile) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ coordinates: [], markers: [] }));
+        return;
+      }
+      
+      // Read and serve the route file
+      fs.readFile(path.join(unprocessedDir, jsonFile), 'utf8', (err, data) => {
+        if (err) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ coordinates: [], markers: [] }));
+        } else {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(data);
+        }
+      });
     });
   }
   // 2. The SSE Stream (The "Push" connection)

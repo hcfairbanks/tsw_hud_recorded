@@ -1,0 +1,149 @@
+{
+  "routeName": "2N04 Milton Keynes - London Euston 0518 0103",
+  "totalPoints": 1,
+  "totalMarkers": 5,
+  "duration": 175519,
+  "requestCount": 1,
+  "coordinates": [
+    {
+      "longitude": -0.7738714029193696,
+      "latitude": 52.033895388746444,
+      "gradient": 0.22730204463005066
+    }
+  ],
+  "markers": [
+    {
+      "stationName": "Milton Keynes Central",
+      "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.7738714029193696,
+        "latitude": 52.033895388746444
+      },
+      "distanceAheadMeters": 0.054903359413146974,
+      "timestamp": "2026-01-06T04:09:10.047Z",
+      "platformLength": 26186.4921875
+    },
+    {
+      "stationName": "Bletchley",
+      "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.7738714029193696,
+        "latitude": 52.033895388746444
+      },
+      "distanceAheadMeters": 4917.5103125,
+      "timestamp": "2026-01-06T04:09:10.059Z",
+      "platformLength": 26164.18359375
+    },
+    {
+      "stationName": "MiltonKyns 1",
+      "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.7738714029193696,
+        "latitude": 52.033895388746444
+      },
+      "distanceAheadMeters": 5.4285986328125,
+      "timestamp": "2026-01-06T04:09:10.070Z",
+      "platformLength": 26186.4921875,
+      "onspot_latitude": 52.033895388746444,
+      "onspot_longitude": -0.7738714029193696,
+      "onspot_timestamp": "2026-01-06T04:12:04.697Z",
+      "spoton_distance": 5.4285986328125
+    },
+    {
+      "stationName": "Bletchley Up Slow Line",
+      "markerType": "Destination",
+      "detectedAt": {
+        "longitude": -0.7738714029193696,
+        "latitude": 52.033895388746444
+      },
+      "distanceAheadMeters": 4620.13125,
+      "timestamp": "2026-01-06T04:09:10.080Z",
+      "platformLength": 14951.572265625
+    },
+    {
+      "stationName": "Bletchley 4",
+      "markerType": "Platform",
+      "detectedAt": {
+        "longitude": -0.7738714029193696,
+        "latitude": 52.033895388746444
+      },
+      "distanceAheadMeters": 5179.1525,
+      "timestamp": "2026-01-06T04:09:10.091Z",
+      "platformLength": 26164.18359375
+    }
+  ],
+  "timetable": [
+    {
+      "index": 0,
+      "destination": "Milton Keynes",
+      "arrival": "05:18:00",
+      "departure": "05:20:00",
+      "platform": "1",
+      "apiName": "MiltonKyns 1"
+    },
+    {
+      "index": 1,
+      "destination": "Bletchley",
+      "arrival": "05:24:30",
+      "departure": "05:25:00",
+      "platform": "4",
+      "apiName": "Bletchley 4"
+    },
+    {
+      "index": 2,
+      "destination": "Leighton Buzzard",
+      "arrival": "05:31:30",
+      "departure": "05:32:00",
+      "platform": "4",
+      "apiName": "Leighton Buzzard 4"
+    },
+    {
+      "index": 3,
+      "destination": "Tring",
+      "arrival": "05:42:30",
+      "departure": "05:43:00",
+      "platform": "5",
+      "apiName": "Tring 5"
+    },
+    {
+      "index": 4,
+      "destination": "Berkhamsted",
+      "arrival": "05:48:30",
+      "departure": "05:49:00",
+      "platform": "4",
+      "apiName": "Berkhamsted 4"
+    },
+    {
+      "index": 5,
+      "destination": "Hemel Hempstead",
+      "arrival": "05:53:30",
+      "departure": "05:54:00",
+      "platform": "4",
+      "apiName": "Hemel Hempstead 4"
+    },
+    {
+      "index": 6,
+      "destination": "Watford Junction",
+      "arrival": "06:01:30",
+      "departure": "06:02:00",
+      "platform": "9",
+      "apiName": "Watford Jn 9"
+    },
+    {
+      "index": 7,
+      "destination": "Harrow & Wealdstone",
+      "arrival": "06:08:30",
+      "departure": "06:09:00",
+      "platform": "6",
+      "apiName": "Harrow & Wealdstone 6"
+    },
+    {
+      "index": 8,
+      "destination": "London Euston",
+      "arrival": "06:21:30",
+      "departure": "",
+      "platform": "8",
+      "apiName": "Euston 8"
+    }
+  ]
+}
