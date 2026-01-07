@@ -404,10 +404,10 @@ const server = http.createServer((req, res) => {
   }
   // Serve the route map viewer at /map
   else if (req.url === '/map') {
-    fs.readFile(path.join(__dirname, 'live_route.html'), (err, data) => {
+    fs.readFile(path.join(__dirname, 'run_map.html'), (err, data) => {
       if (err) {
         res.writeHead(404, { 'Content-Type': 'text/html' });
-        res.end('<h1>404 - live_route.html not found</h1>');
+        res.end('<h1>404 - run_map.html not found</h1>');
       } else {
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end(data);

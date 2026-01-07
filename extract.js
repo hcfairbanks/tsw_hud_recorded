@@ -8,6 +8,42 @@ const OUTPUT_CSV_DIR = './formats/csv';
 const OUTPUT_HUD_DIR = './formats/hud';
 const OUTPUT_THIRDRAILS_DIR = './formats/thirdrails';
 const OUTPUT_UNPROCESSED_DIR = './unprocessed_routes';
+const STATION_NAMES_DIR = './station_names';
+
+// Load station name mappings
+function loadStationNameMappings() {
+  const mappings = new Map();
+  try {
+    const stationNamesPath = path.join(__dirname, STATION_NAMES_DIR);
+    if (fs.existsSync(stationNamesPath)) {
+      const files = fs.readdirSync(stationNamesPath).filter(file => file.endsWith('.json'));
+      files.forEach(file => {
+        try {
+          const filePath = path.join(stationNamesPath, file);
+          const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+          // Add all mappings from this file
+          Object.entries(data).forEach(([key, value]) => {
+            mappings.set(key, value);
+          });
+          console.log(`Loaded station mappings from ${file}`);
+        } catch (err) {
+          console.warn(`Failed to load station mappings from ${file}:`, err.message);
+        }
+      });
+    }
+  } catch (err) {
+    console.warn('Failed to load station name mappings:', err.message);
+  }
+  return mappings;
+}
+
+// Get mapped station name or return original
+function getMappedStationName(stationMappings, destinationName) {
+  return stationMappings.get(destinationName) || destinationName;
+}
+
+// Load mappings at startup
+const stationMappings = loadStationNameMappings();
 
 async function extractTextFromImage(imagePath) {
   console.log('Processing image: ' + imagePath);
@@ -313,7 +349,8 @@ function writeToHUD(data, serviceNames, extraData) {
   if (firstArrival || firstDeparture) {
     const firstDestination = extraData && extraData.firstDestination ? extraData.firstDestination : '';
     const firstPlatform = extraData && extraData.firstPlatform ? extraData.firstPlatform : '';
-    const apiName = firstDestination && firstPlatform ? firstDestination + ' ' + firstPlatform : '';
+    const mappedDestination = getMappedStationName(stationMappings, firstDestination);
+    const apiName = mappedDestination && firstPlatform ? mappedDestination + ' ' + firstPlatform : '';
     
     const firstLine = [
       firstDestination,
@@ -342,7 +379,8 @@ function writeToHUD(data, serviceNames, extraData) {
       
       const destination = row.location || '';
       const platform = row.platform || '';
-      const apiName = destination && platform ? destination + ' ' + platform : '';
+      const mappedDestination = getMappedStationName(stationMappings, destination);
+      const apiName = mappedDestination && platform ? mappedDestination + ' ' + platform : '';
       
       const line = [
         destination,
@@ -409,7 +447,8 @@ function writeToJSONRouteSkeleton(data, serviceNames, extraData) {
   if (firstArrival || firstDeparture) {
     const firstDest = extraData && extraData.firstDestination ? extraData.firstDestination : '';
     const firstPlat = extraData && extraData.firstPlatform ? extraData.firstPlatform : '';
-    const firstApiName = firstDest && firstPlat ? firstDest + ' ' + firstPlat : '';
+    const mappedFirstDest = getMappedStationName(stationMappings, firstDest);
+    const firstApiName = mappedFirstDest && firstPlat ? mappedFirstDest + ' ' + firstPlat : '';
     
     timetable.push({
       index: index++,
@@ -417,7 +456,9 @@ function writeToJSONRouteSkeleton(data, serviceNames, extraData) {
       arrival: firstArrival,
       departure: firstDeparture,
       platform: firstPlat,
-      apiName: firstApiName
+      apiName: firstApiName,
+      longitude: null,
+      latitude: null
     });
   }
   
@@ -432,7 +473,8 @@ function writeToJSONRouteSkeleton(data, serviceNames, extraData) {
       
       const destination = row.location || '';
       const platform = row.platform || '';
-      const apiName = destination && platform ? destination + ' ' + platform : '';
+      const mappedDestination = getMappedStationName(stationMappings, destination);
+      const apiName = mappedDestination && platform ? mappedDestination + ' ' + platform : '';
       
       timetable.push({
         index: index++,
@@ -440,7 +482,9 @@ function writeToJSONRouteSkeleton(data, serviceNames, extraData) {
         arrival: row.arrival || '',
         departure: departure,
         platform: platform,
-        apiName: apiName
+        apiName: apiName,
+        longitude: null,
+        latitude: null
       });
     }
   }

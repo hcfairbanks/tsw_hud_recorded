@@ -3,6 +3,8 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
+const readline = require('readline');
+const { spawn } = require('child_process');
 const { networkInterfaces } = require('os');
 
 // Read the API key from the specified file
@@ -169,19 +171,39 @@ function initializeRouteFile() {
       // Use the first (most recent) skeleton file found
       const skeletonFileName = existingFiles[0];
         routeOutputFilePath = path.join(outputDir, skeletonFileName);
-        console.log(`Found existing route skeleton: ${skeletonFileName}`);
+        console.log(`Found existing route file: ${skeletonFileName}`);
         console.log('Route data will be added to this file');
         
-        // Load existing data to preserve timetable
+        // Load existing data to resume recording
         try {
             const existingData = JSON.parse(fs.readFileSync(routeOutputFilePath, 'utf8'));
             if (existingData.timetable && Array.isArray(existingData.timetable)) {
                 // Populate timetableData array for HUD display
                 timetableData = existingData.timetable;
-                console.log(`Loaded timetable with ${timetableData.length} stops from skeleton`);
+                console.log(`Loaded timetable with ${timetableData.length} stops`);
             }
+            
+            // Resume coordinate collection from existing data
+            if (existingData.coordinates && Array.isArray(existingData.coordinates)) {
+                routeCoordinates.push(...existingData.coordinates);
+                console.log(`Resuming recording: ${routeCoordinates.length} existing coordinates loaded`);
+            }
+            
+            // Resume marker collection from existing data
+            if (existingData.markers && Array.isArray(existingData.markers)) {
+                discoveredMarkers.push(...existingData.markers);
+                console.log(`Resuming recording: ${discoveredMarkers.length} existing markers loaded`);
+            }
+            
+            // Resume counters
+            if (existingData.requestCount) {
+                routeCollectionRequestCount = existingData.requestCount;
+            }
+            
+            console.log('📍 Ready to resume route recording where it left off');
+            
         } catch (err) {
-            console.warn('Warning: Could not load existing skeleton file:', err.message);
+            console.warn('Warning: Could not load existing data, starting fresh:', err.message);
         }
     } else {
         // No skeleton found, print warning
@@ -379,7 +401,7 @@ const server = http.createServer((req, res) => {
   }
   // Serve the live map page
   else if (req.url === '/map') {
-    fs.readFile(path.join(__dirname, 'live_map.html'), (err, data) => {
+    fs.readFile(path.join(__dirname, 'record_map.html'), (err, data) => {
       if (err) {
         res.writeHead(404, { 'Content-Type': 'text/html' });
         res.end('<h1>404 - Map page not found</h1>');
@@ -417,6 +439,65 @@ const server = http.createServer((req, res) => {
           res.end(data);
         }
       });
+    });
+  }
+  // Handle saving coordinates to timetable
+  else if (req.url === '/save-timetable-coords' && req.method === 'POST') {
+    let body = '';
+    
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    
+    req.on('end', () => {
+      try {
+        const { index, latitude, longitude } = JSON.parse(body);
+        
+        // Validate the data
+        if (typeof index !== 'number' || typeof latitude !== 'number' || typeof longitude !== 'number') {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Invalid data types' }));
+          return;
+        }
+        
+        if (index < 0 || index >= timetableData.length) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: `Invalid index ${index}. Must be between 0 and ${timetableData.length - 1}` }));
+          return;
+        }
+        
+        // Update the timetable entry
+        timetableData[index].latitude = latitude;
+        timetableData[index].longitude = longitude;
+        
+        console.log(`Updated timetable index ${index} with coordinates: ${latitude}, ${longitude}`);
+        
+        // Save to the route file if it exists
+        if (routeOutputFilePath && fs.existsSync(routeOutputFilePath)) {
+          try {
+            const existingData = JSON.parse(fs.readFileSync(routeOutputFilePath, 'utf8'));
+            if (existingData.timetable && Array.isArray(existingData.timetable)) {
+              existingData.timetable[index].latitude = latitude;
+              existingData.timetable[index].longitude = longitude;
+              fs.writeFileSync(routeOutputFilePath, JSON.stringify(existingData, null, 2));
+              console.log('Updated route file with new coordinates');
+            }
+          } catch (fileErr) {
+            console.warn('Could not update route file:', fileErr.message);
+          }
+        }
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: true, 
+          message: `Updated timetable index ${index}`,
+          destination: timetableData[index].destination || 'Unknown'
+        }));
+        
+      } catch (parseErr) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Invalid JSON data' }));
+      }
     });
   }
   // 2. The SSE Stream (The "Push" connection)
@@ -901,14 +982,57 @@ deleteSubscription().then(() => {
 
 // Handle graceful shutdown and save route data
 async function cleanup() {
-  console.log('\n\nShutting down server...');
+  console.log('\n\n🛑 Shutdown signal received...');
   
   if (ENABLE_ROUTE_COLLECTION && routeCoordinates.length > 0) {
     saveRouteData();
-    console.log(`Final route saved: ${routeCoordinates.length} coordinates, ${discoveredMarkers.length} markers`);
+    console.log(`Route data saved: ${routeCoordinates.length} coordinates, ${discoveredMarkers.length} markers`);
+    
+    // Interactive shutdown options when route data exists
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+    
+    console.log('\nChoose an option:');
+    console.log('1. ⏸️  Pause (save and exit)');
+    console.log('2. ⚙️  Process (run process.js to finalize route)');
+    
+    rl.question('\nEnter your choice (1 or 2): ', (answer) => {
+      rl.close();
+      
+      if (answer.trim() === '2') {
+        console.log('\n🔄 Starting route processing...');
+        
+        // Run process.js with the current route file
+        const processScript = spawn('node', ['process.js', path.basename(routeOutputFilePath)], {
+          cwd: __dirname,
+          stdio: 'inherit'
+        });
+        
+        processScript.on('close', (code) => {
+          if (code === 0) {
+            console.log('\n✅ Route processing completed successfully!');
+          } else {
+            console.log(`\n❌ Route processing exited with code ${code}`);
+          }
+          process.exit(code);
+        });
+        
+        processScript.on('error', (err) => {
+          console.error('\n❌ Failed to start process.js:', err.message);
+          process.exit(1);
+        });
+        
+      } else {
+        console.log('\n⏸️  Recording paused. Route data saved.');
+        console.log('Resume recording by running: node record.js');
+        process.exit(0);
+      }
+    });
+  } else {
+    process.exit(0);
   }
-  
-  process.exit(0);
 }
 
 // Listen for shutdown signals

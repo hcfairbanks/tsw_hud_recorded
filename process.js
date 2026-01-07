@@ -148,8 +148,9 @@ function loadTimetableStations(routeName) {
 
 /**
  * Process markers and calculate their actual positions
- * Method 1: Use onspot_latitude/onspot_longitude and spoton_distance
- * Method 2: Use detectedAt position and distanceAheadMeters
+ * Method 1: Use timetable longitude/latitude if available and matches apiName
+ * Method 2: Use onspot_latitude/onspot_longitude and spoton_distance
+ * Method 3: Use detectedAt position and distanceAheadMeters
  */
 function processMarkers(data, timetableStations) {
     if (!data.coordinates || !Array.isArray(data.coordinates) || data.coordinates.length === 0) {
@@ -162,9 +163,20 @@ function processMarkers(data, timetableStations) {
     }
 
     console.log(`\nProcessing ${data.markers.length} markers...`);
-    let method1Count = 0;
-    let method2Count = 0;
+    let method1Count = 0; // timetable coordinates
+    let method2Count = 0; // onspot
+    let method3Count = 0; // detectedAt
     let errorCount = 0;
+
+    // Create a map of timetable entries for quick lookup
+    const timetableMap = new Map();
+    if (data.timetable && Array.isArray(data.timetable)) {
+        data.timetable.forEach(entry => {
+            if (entry.apiName) {
+                timetableMap.set(entry.apiName, entry);
+            }
+        });
+    }
 
     for (let i = 0; i < data.markers.length; i++) {
         const marker = data.markers[i];
@@ -175,8 +187,18 @@ function processMarkers(data, timetableStations) {
         marker.isTimetableStation = timetableStations.includes(marker.stationName);
 
         try {
-            // Method 1: Use onspot position and spoton_distance
-            if (marker.onspot_latitude && marker.onspot_longitude && marker.spoton_distance !== undefined) {
+            // Method 1: Use timetable coordinates if available
+            const timetableEntry = timetableMap.get(marker.stationName);
+            if (timetableEntry && timetableEntry.latitude && timetableEntry.longitude) {
+                marker.latitude = timetableEntry.latitude;
+                marker.longitude = timetableEntry.longitude;
+                marker.calculationMethod = 'timetable';
+                
+                method1Count++;
+                console.log(`  ✓ ${markerName}: Using timetable coordinates`);
+            }
+            // Method 2: Use onspot position and spoton_distance
+            else if (marker.onspot_latitude && marker.onspot_longitude && marker.spoton_distance !== undefined) {
                 // Find the nearest coordinate to the onspot position
                 const nearestIndex = findNearestCoordinateIndex(
                     data.coordinates,
@@ -195,10 +217,10 @@ function processMarkers(data, timetableStations) {
                 marker.longitude = position.longitude;
                 marker.calculationMethod = 'onspot';
                 
-                method1Count++;
+                method2Count++;
                 console.log(`  ✓ ${markerName}: Using onspot position (${marker.spoton_distance.toFixed(2)}m ahead)`);
             }
-            // Method 2: Use detectedAt position and distanceAheadMeters
+            // Method 3: Use detectedAt position and distanceAheadMeters
             else if (marker.detectedAt && marker.detectedAt.latitude && marker.detectedAt.longitude && marker.distanceAheadMeters !== undefined) {
                 // Find the nearest coordinate to the detected position
                 const nearestIndex = findNearestCoordinateIndex(
@@ -218,7 +240,7 @@ function processMarkers(data, timetableStations) {
                 marker.longitude = position.longitude;
                 marker.calculationMethod = 'detectedAt';
                 
-                method2Count++;
+                method3Count++;
                 console.log(`  ✓ ${markerName}: Using detectedAt position (${marker.distanceAheadMeters.toFixed(2)}m ahead)`);
             }
             else {
@@ -246,8 +268,9 @@ function processMarkers(data, timetableStations) {
     }
 
     console.log(`\nProcessing Summary:`);
-    console.log(`  Method 1 (onspot): ${method1Count} markers`);
-    console.log(`  Method 2 (detectedAt): ${method2Count} markers`);
+    console.log(`  Method 1 (timetable): ${method1Count} markers`);
+    console.log(`  Method 2 (onspot): ${method2Count} markers`);
+    console.log(`  Method 3 (detectedAt): ${method3Count} markers`);
     console.log(`  Errors/Skipped: ${errorCount} markers`);
 
     return method1Count + method2Count;

@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Train Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+
+        @keyframes recording-glow {
+            0%, 100% {
+                opacity: 1;
+                filter: drop-shadow(0 0 3px #ff0000);
+            }
+            50% {
+                opacity: 0.6;
+                filter: drop-shadow(0 0 8px #ff0000) drop-shadow(0 0 12px #ff0000);
+            }
+        }
+
+        .recording-indicator {
+            color: #ff0000;
+            display: inline-block;
+            animation: recording-glow 1.5s ease-in-out infinite;
+        }
+        
+        .recording-indicator.disconnected {
+            color: #ffaa00;
+            animation: none;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 8%;
+            right: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 1000;
+            min-width: 280px;
+            max-width: 320px;
+        }
+
+        .info-panel h2 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 18px;
+            border-bottom: 2px solid #0066ff;
+            padding-bottom: 10px;
+        }
+
+        .info-group {
+            margin-bottom: 12px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .info-group h3 {
+            font-size: 14px;
+            color: #000;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 6px 0;
+            font-size: 13px;
+        }
+
+        .info-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: bold;
+        }
+
+        .timetable-display {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .game-time {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            opacity: 0.9;
+            font-family: 'Courier New', monospace;
+        }
+
+        .timetable-time {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .timetable-label {
+            font-size: 14px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .distance-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            margin-top: 10px;
+        }
+
+        .copy-coords-btn {
+            background: #0066ff;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            margin-top: 8px;
+            margin-right: 5px;
+        }
+
+        .copy-coords-btn:hover {
+            background: #0052cc;
+        }
+
+        .copy-coords-btn:active {
+            background: #003d99;
+        }
+
+        .clear-coords-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            margin-top: 8px;
+        }
+
+        .clear-coords-btn:hover {
+            background: #c82333;
+        }
+
+        .clear-coords-btn:active {
+            background: #bd2130;
+        }
+
+        .save-timetable-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            margin-top: 8px;
+            margin-left: 5px;
+        }
+
+        .save-timetable-btn:hover {
+            background: #218838;
+        }
+
+        .save-timetable-btn:active {
+            background: #1e7e34;
+        }
+
+        .timetable-dropdown {
+            min-width: 150px;
+            padding: 4px 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-top: 8px;
+            margin-left: 5px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .timetable-dropdown:focus {
+            outline: none;
+            border-color: #0066ff;
+        }
+
+        .copy-position-btn {
+            background: #999999;
+            color: white;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 9px;
+            margin-top: 2px;
+            display: block;
+        }
+
+        .copy-position-btn:hover {
+            background: #888888;
+        }
+
+        .copy-position-btn:active {
+            background: #777777;
+        }
+
+        .coords-display {
+            background: #ffffff;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            margin-top: 5px;
+            white-space: pre;
+            border: 1px solid #ddd;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-connected {
+            background-color: #00cc66;
+            box-shadow: 0 0 6px #00cc66;
+        }
+
+        .status-disconnected {
+            background-color: #ff0000;
+            box-shadow: 0 0 6px #ff0000;
+        }
+        .legend {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        .legend h3 {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 6px 0;
+            font-size: 12px;
+        }
+        .legend-color {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .legend-line {
+            width: 20px;
+            height: 4px;
+            margin-right: 10px;
+            border-radius: 2px;
+        }
+        
+        .follow-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: inherit;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .follow-btn:hover {
+            background: #1d4ed8;
+        }
+        
+        .follow-btn.following {
+            background: #dc2626;
+        }
+        
+        .follow-btn.following:hover {
+            background: #b91c1c;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .toggle-arrow {
+            font-size: 12px;
+            color: #666;
+            transition: transform 0.2s ease;
+        }
+        
+        .toggle-arrow.collapsed {
+            transform: rotate(-90deg);
+        }
+        
+        .collapsible-content {
+            transition: max-height 0.3s ease, opacity 0.2s ease;
+            overflow: hidden;
+        }
+        
+        .collapsible-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div class="info-panel">
+        <h2><span class="recording-indicator" id="recordingIndicator">●</span> <span id="recordingText">Recording</span></h2>
+        
+        <div class="timetable-display" id="timetableDisplay" style="display: none;">
+            <div class="game-time" id="gameTime">--:--:--</div>
+            <div class="timetable-time" id="timetableTime">--:--</div>
+            <div class="timetable-label" id="timetableLabel">Next Stop</div>
+            <div class="distance-display" id="distanceDisplay" style="display: none;">
+                <span id="distanceValue">0</span> m
+            </div>
+        </div>
+        
+        <div class="info-group">
+            <h3>Train Status</h3>
+            <div class="info-item">
+                <span class="info-label">Speed:</span>
+                <span class="info-value"><span id="speed">0</span> km/h</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Direction:</span>
+                <span class="info-value" id="direction">-</span>
+            </div>
+            <div class="info-item">
+                <button class="copy-position-btn" id="copyPositionBtn" onclick="copyCurrentPosition()">Copy Position</button>
+                <span class="info-value" style="font-size: 11px;">
+                    <div>Lat: <span id="currentLat">-</span></div>
+                    <div>Lng: <span id="currentLng">-</span></div>
+                </span>
+            </div>
+            <div class="info-item" style="flex-direction: column; align-items: flex-start;">
+                <span class="info-label" style="margin-bottom: 5px;">Save to Timetable:</span>
+                <div style="display: flex; gap: 5px; flex-wrap: wrap; align-items: center;">
+                    <select class="timetable-dropdown" id="timetableDropdown" title="Select timetable entry">
+                        <option value="0">0. Loading...</option>
+                    </select>
+                    <button class="save-timetable-btn" id="saveBtn" onclick="saveToTimetable()" disabled title="Click map to capture coordinates first">Save Station</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-group">
+            <div class="section-header" onclick="toggleSection('coordinatesSection')">
+                <h3>Coordinates</h3>
+                <span class="toggle-arrow collapsed" id="coordinatesArrow">▼</span>
+            </div>
+            <div class="collapsible-content collapsed" id="coordinatesSection">
+                <div class="info-item" style="flex-direction: column; align-items: flex-start;">
+                    <span class="info-label" style="margin-bottom: 5px;">Click map or marker to capture</span>
+                    <div class="coords-display" id="coordsDisplay">No coordinates selected</div>
+                    <div>
+                        <button class="copy-coords-btn" id="copyBtn" style="display: none;">Copy</button>
+                        <button class="clear-coords-btn" id="clearBtn" style="display: none;" onclick="clearCoordinates()">Clear</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <h3>Map Legend</h3>
+            <div class="legend-item">
+                <div class="legend-line" style="background: #0066ff;"></div>
+                <span>Route Path</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ffa500;"></div>
+                <span>Live Train Position</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #00cc66;"></div>
+                <span>Station</span>
+            </div>
+            <button class="follow-btn" id="followBtn" onclick="toggleFollowTrain()" title="Click to follow train position">Follow Train</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize the map (centered on UK)
+        const map = L.map('map').setView([52.0, -0.5], 10);
+
+        // Add OpenStreetMap tiles
+        // (Removed duplicate default OSM layer to avoid conflict with selector)
+
+        // Add tile layers for selector
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        });
+        const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles © Esri',
+            maxZoom: 19
+        });
+        // Set default layer
+        osm.addTo(map);
+        // Layer control
+        L.control.layers({
+            'Geographic': osm,
+            'Satellite': satellite
+        }).addTo(map);
+
+        // Store path coordinates
+        let pathCoordinates = [];
+        let pathPolyline = null;
+        let trainMarker = null;
+        let markerCircles = [];
+        let stationMarkers = new Map(); // Track timetable station markers
+        let firstPosition = true;
+        let isFollowingTrain = false; // Track if we're following the train
+        let timetableMarkers = new Map(); // Track saved timetable position markers
+
+        // Store previous route data
+        let previousRoutePolyline = null;
+        // Load previous route data on page load
+        fetch('/previous-route')
+            .then(response => response.json())
+            .then(routeData => {
+                if (routeData.coordinates && routeData.coordinates.length > 0) {
+                    // Draw previous route with same style as current route
+                    const previousCoords = routeData.coordinates.map(c => [c.latitude, c.longitude]);
+                    previousRoutePolyline = L.polyline(previousCoords, {
+                        color: '#0066ff',
+                        weight: 4,
+                        opacity: 0.7
+                    }).addTo(map);
+
+                    console.log(`Loaded previous route: ${routeData.coordinates.length} points`);
+                    
+                    // Populate timetable dropdown if timetable data is available
+                    if (routeData.timetable && Array.isArray(routeData.timetable)) {
+                        populateTimetableDropdown(routeData.timetable);
+                    }
+                }
+            })
+            .catch(err => {
+                console.log('No previous route data available:', err);
+            });
+
+        // Function to populate the timetable dropdown
+        function populateTimetableDropdown(timetableData) {
+            const dropdown = document.getElementById('timetableDropdown');
+            
+            // Clear existing options
+            dropdown.innerHTML = '';
+            
+            // Add options for each timetable entry
+            timetableData.forEach((entry, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${index}. ${entry.destination || 'Unknown'}`;
+                dropdown.appendChild(option);
+            });
+            
+            console.log(`Populated timetable dropdown with ${timetableData.length} entries`);
+        }
+
+        // Function to find and set the upcoming station in dropdown based on timetableLabel
+        function setUpcomingStation(timetableLabel) {
+            const dropdown = document.getElementById('timetableDropdown');
+            if (!dropdown || !timetableLabel) return;
+
+            // Try to find matching station by destination name
+            for (let i = 0; i < dropdown.options.length; i++) {
+                const optionText = dropdown.options[i].textContent;
+                const destination = optionText.split('. ')[1] || '';
+                
+                // Check if the timetableLabel contains the destination name
+                if (timetableLabel.toLowerCase().includes(destination.toLowerCase()) || 
+                    destination.toLowerCase().includes(timetableLabel.toLowerCase())) {
+                    dropdown.value = i;
+                    console.log(`Set dropdown to upcoming station: ${optionText}`);
+                    return;
+                }
+            }
+        }
+
+        // Create custom train icon
+        const trainIcon = L.divIcon({
+            className: 'train-icon',
+            html: '<div style="background: #ffa500; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(255,165,0,0.8), 0 2px 6px rgba(0,0,0,0.3);"></div>',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+        });
+
+        // Direction mapping
+        const directionMap = {
+            '-1': 'Reverse',
+            '0': 'Neutral',
+            '1': 'Forward'
+        };
+
+        // Connect to Server-Sent Events stream
+        const eventSource = new EventSource('/stream');
+
+        eventSource.onopen = () => {
+            console.log('Connected to stream');
+            document.getElementById('recordingText').textContent = 'Recording';
+            document.getElementById('recordingIndicator').className = 'recording-indicator';
+        };
+
+        eventSource.onerror = () => {
+            console.log('Connection lost');
+            document.getElementById('recordingText').textContent = 'Lost Connection';
+            document.getElementById('recordingIndicator').className = 'recording-indicator disconnected';
+        };
+
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            // Update speed and direction
+            document.getElementById('speed').textContent = data.speed || 0;
+            document.getElementById('direction').textContent = directionMap[data.direction] || 'Unknown';
+
+            // Check if we have GPS data in the raw response
+            if (data.raw && data.raw.Entries) {
+                for (const entry of data.raw.Entries) {
+                    // Get GPS coordinates from PlayerInfo
+                    if (entry.Path === 'DriverAid.PlayerInfo' && entry.NodeValid && entry.Values) {
+                        const geoLocation = entry.Values.geoLocation;
+                        if (geoLocation && geoLocation.latitude && geoLocation.longitude) {
+                            const lat = geoLocation.latitude;
+                            const lng = geoLocation.longitude;
+
+                            // Update current position display
+                            document.getElementById('currentLat').textContent = lat;
+                            document.getElementById('currentLng').textContent = lng;
+                            
+                            // Enable save button since we have valid coordinates
+                            const saveBtn = document.getElementById('saveBtn');
+                            if (saveBtn) {
+                                saveBtn.disabled = false;
+                                saveBtn.title = 'Save current train position to selected timetable entry';
+                            }
+
+                            // Add to path if different from last position
+                            if (pathCoordinates.length === 0 || 
+                                pathCoordinates[pathCoordinates.length - 1][0] !== lat ||
+                                pathCoordinates[pathCoordinates.length - 1][1] !== lng) {
+                                
+                                pathCoordinates.push([lat, lng]);
+
+                                // Update or create path polyline
+                                if (pathPolyline) {
+                                    pathPolyline.setLatLngs(pathCoordinates);
+                                } else {
+                                    pathPolyline = L.polyline(pathCoordinates, {
+                                        color: '#0066ff',
+                                        weight: 4,
+                                        opacity: 0.7
+                                    }).addTo(map);
+                                }
+                            }
+
+                            // Update train marker position
+                            if (trainMarker) {
+                                trainMarker.setLatLng([lat, lng]);
+                            } else {
+                                trainMarker = L.marker([lat, lng], { icon: trainIcon })
+                                    .bindPopup('Current Position')
+                                    .addTo(map);
+                            }
+
+                            // Center map on train position (first time or if following)
+                            if (firstPosition || isFollowingTrain) {
+                                map.setView([lat, lng], firstPosition ? 15 : map.getZoom());
+                                firstPosition = false;
+                            }
+                            // User can now freely pan the map without auto-centering
+                        }
+                    }
+
+                    // Process TrackData for markers
+                    if (entry.Path === 'DriverAid.TrackData' && entry.NodeValid && entry.Values) {
+                        // Process stations - disabled for record map (only showing start position)
+                        // Station markers removed to keep map clean during recording
+
+                        // Process markers - disabled for record map (only showing start position)
+                        // Marker objects removed to keep map clean during recording
+                    }
+                }
+            }
+
+            // Update route name if available
+            if (data.timetableLabel) {
+                // Route name update removed
+            }
+
+            // Update timetable display if available
+            if (data.localTime && data.timetableTime) {
+                const timetableDisplay = document.getElementById('timetableDisplay');
+                timetableDisplay.style.display = 'block';
+                
+                // Extract just the time part from ISO8601 string
+                const timePart = data.localTime.split('T')[1].split('.')[0];
+                document.getElementById('gameTime').textContent = timePart;
+                
+                document.getElementById('timetableTime').textContent = data.timetableTime || '--:--';
+                document.getElementById('timetableLabel').textContent = data.timetableLabel || 'Next Stop';
+                
+                // Set dropdown to the upcoming station based on timetableLabel
+                setUpcomingStation(data.timetableLabel);
+                
+                // Show distance if available
+                const distanceDisplay = document.getElementById('distanceDisplay');
+                if (data.distanceToStation !== null && data.distanceToStation !== undefined) {
+                    distanceDisplay.style.display = 'block';
+                    document.getElementById('distanceValue').textContent = data.distanceToStation;
+                } else {
+                    distanceDisplay.style.display = 'none';
+                }
+            }
+        };
+
+        // Add click handler to capture coordinates
+        map.on('click', function(e) {
+            updateCoordinates(e.latlng.lng, e.latlng.lat);
+        });
+
+        // Function to update coordinates display
+        function updateCoordinates(lng, lat) {
+            const coordsDisplay = document.getElementById('coordsDisplay');
+            const copyBtn = document.getElementById('copyBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const timetableDropdown = document.getElementById('timetableDropdown');
+            
+            coordsDisplay.textContent = `Latitude: ${lat}\nLongitude: ${lng}`;
+            copyBtn.style.display = 'inline-block';
+            clearBtn.style.display = 'inline-block';
+            
+            // Enable save functionality
+            saveBtn.disabled = false;
+            saveBtn.title = 'Save current position to selected timetable entry';
+            
+            // Store coordinates globally for use by save function
+            window.currentLng = lng;
+            window.currentLat = lat;
+            
+            // Store coordinates for copying
+            copyBtn.onclick = function() {
+                const text = `      "longitude": ${lng},\n      "latitude": ${lat},`;
+                navigator.clipboard.writeText(text).then(() => {
+                    copyBtn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyBtn.textContent = 'Copy Position';
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                });
+            };
+        }
+
+        // Function to clear coordinates display
+        function clearCoordinates() {
+            const coordsDisplay = document.getElementById('coordsDisplay');
+            const copyBtn = document.getElementById('copyBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            
+            coordsDisplay.textContent = 'No coordinates selected';
+            copyBtn.style.display = 'none';
+            clearBtn.style.display = 'none';
+            
+            // Disable save functionality
+            saveBtn.disabled = true;
+            saveBtn.title = 'Click map to capture coordinates first';
+            
+            // Clear stored coordinates
+            window.currentLng = null;
+            window.currentLat = null;
+        }
+
+        // Function to copy current position
+        function copyCurrentPosition() {
+            const lat = document.getElementById('currentLat').textContent;
+            const lng = document.getElementById('currentLng').textContent;
+            
+            if (lat !== '-' && lng !== '-') {
+                const text = `      "longitude": ${lng},\n      "latitude": ${lat},`;
+                navigator.clipboard.writeText(text).then(() => {
+                    const btn = document.getElementById('copyPositionBtn');
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        btn.textContent = 'Copy Position';
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                });
+            }
+        }
+
+        // Function to save coordinates to timetable
+        function saveToTimetable() {
+            const timetableDropdown = document.getElementById('timetableDropdown');
+            const saveBtn = document.getElementById('saveBtn');
+            
+            console.log('Save button clicked');
+            
+            // Get current train coordinates from the status section
+            const currentLat = document.getElementById('currentLat').textContent;
+            const currentLng = document.getElementById('currentLng').textContent;
+            
+            console.log('Current coordinates from status:', { lat: currentLat, lng: currentLng });
+            
+            // Check if we have valid train coordinates
+            if (currentLat === '-' || currentLng === '-' || !currentLat || !currentLng) {
+                console.log('No valid coordinates available');
+                saveBtn.textContent = 'No Position!';
+                setTimeout(() => {
+                    saveBtn.textContent = 'Save Station';
+                }, 2000);
+                console.log('No current train position available');
+                return;
+            }
+            
+            const index = parseInt(timetableDropdown.value);
+            const latitude = parseFloat(currentLat);
+            const longitude = parseFloat(currentLng);
+            
+            console.log('Preparing to save:', { index, latitude, longitude });
+            
+            // Send coordinates to record.js
+            fetch('/save-timetable-coords', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    index: index,
+                    latitude: latitude,
+                    longitude: longitude
+                })
+            })
+            .then(response => {
+                console.log('Server response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Server response data:', data);
+                if (data.success) {
+                    saveBtn.textContent = 'Saved!';
+                    
+                    // Add marker to map
+                    const selectedOption = timetableDropdown.options[timetableDropdown.selectedIndex];
+                    const destination = selectedOption.text.split('. ')[1] || 'Unknown';
+                    addTimetableMarker(index, latitude, longitude, destination);
+                    
+                    // Move to next option in dropdown
+                    const nextIndex = index + 1;
+                    if (nextIndex < timetableDropdown.options.length) {
+                        timetableDropdown.value = nextIndex;
+                    }
+                    setTimeout(() => {
+                        saveBtn.textContent = 'Save Station';
+                    }, 2000);
+                    console.log(`Saved train position (${latitude}, ${longitude}) to timetable index ${index}`);
+                } else {
+                    saveBtn.textContent = 'Error!';
+                    setTimeout(() => {
+                        saveBtn.textContent = 'Save Station';
+                    }, 2000);
+                    console.error('Failed to save coordinates:', data.error);
+                }
+            })
+            .catch(err => {
+                console.error('Fetch error:', err);
+                saveBtn.textContent = 'Error!';
+                setTimeout(() => {
+                    saveBtn.textContent = 'Save Station';
+                }, 2000);
+                console.error('Failed to save coordinates:', err);
+            });
+        }
+        
+        // Function to add or update timetable marker
+        function addTimetableMarker(index, lat, lng, destination) {
+            // Remove existing marker if it exists
+            if (timetableMarkers.has(index)) {
+                map.removeLayer(timetableMarkers.get(index));
+            }
+            
+            // Create custom green marker icon
+            const timetableIcon = L.divIcon({
+                className: 'custom-timetable-marker',
+                html: `<div style="background-color: #00cc66; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>`,
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            });
+            
+            // Create marker
+            const marker = L.marker([lat, lng], { icon: timetableIcon })
+                .bindPopup(`<strong>Timetable Position ${index}</strong><br>${destination}<br>Lat: ${lat}<br>Lng: ${lng}`)
+                .addTo(map);
+                
+            // Store marker reference
+            timetableMarkers.set(index, marker);
+            
+            console.log(`Added timetable marker ${index} at ${lat}, ${lng}`);
+        }
+        
+        // Function to load existing timetable markers on page load
+        function loadTimetableMarkers() {
+            // Get the current timetable data from the dropdown
+            fetch('/previous-route')
+                .then(response => response.json())
+                .then(routeData => {
+                    if (routeData.timetable && Array.isArray(routeData.timetable)) {
+                        routeData.timetable.forEach(entry => {
+                            if (entry.latitude !== null && entry.longitude !== null) {
+                                addTimetableMarker(entry.index, entry.latitude, entry.longitude, entry.destination);
+                            }
+                        });
+                        console.log('Loaded existing timetable markers');
+                    }
+                })
+                .catch(err => {
+                    console.warn('Could not load timetable markers:', err);
+                });
+        }
+        
+        // Function to toggle following the train
+        function toggleFollowTrain() {
+            const followBtn = document.getElementById('followBtn');
+            
+            isFollowingTrain = !isFollowingTrain;
+            
+            if (isFollowingTrain) {
+                followBtn.textContent = 'Stop Following';
+                followBtn.classList.add('following');
+                followBtn.title = 'Click to stop following train position';
+                
+                // If we have a current train position, center on it immediately
+                if (trainMarker) {
+                    const pos = trainMarker.getLatLng();
+                    map.setView([pos.lat, pos.lng], map.getZoom());
+                }
+                
+                console.log('Started following train');
+            } else {
+                followBtn.textContent = 'Follow Train';
+                followBtn.classList.remove('following');
+                followBtn.title = 'Click to follow train position';
+                
+                console.log('Stopped following train');
+            }
+        }
+        
+        // Function to toggle collapsible sections
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            const arrow = document.getElementById(sectionId.replace('Section', 'Arrow'));
+            
+            if (section.classList.contains('collapsed')) {
+                section.classList.remove('collapsed');
+                arrow.classList.remove('collapsed');
+                section.style.maxHeight = section.scrollHeight + 'px';
+            } else {
+                section.classList.add('collapsed');
+                arrow.classList.add('collapsed');
+                section.style.maxHeight = '0px';
+            }
+        }
+        
+        // Initialize save button state on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const saveBtn = document.getElementById('saveBtn');
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.title = 'Waiting for train position data';
+            }
+            
+            // Load existing timetable markers after a short delay to ensure map is ready
+            setTimeout(() => {
+                loadTimetableMarkers();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
