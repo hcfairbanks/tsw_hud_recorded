@@ -26,7 +26,7 @@
 
         .info-panel {
             position: absolute;
-            top: 10px;
+            top: 120px;
             right: 10px;
             background: white;
             padding: 20px;
@@ -60,6 +60,11 @@
         .status-disconnected {
             background-color: #ff0000;
             box-shadow: 0 0 6px #ff0000;
+        }
+
+        .status-lost {
+            background-color: #ffaa00;
+            box-shadow: 0 0 6px #ffaa00;
         }
 
         .info-group {
@@ -233,6 +238,31 @@
             margin-right: 10px;
             border-radius: 2px;
         }
+        
+        .follow-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: inherit;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .follow-btn:hover {
+            background: #1d4ed8;
+        }
+        
+        .follow-btn.following {
+            background: #dc2626;
+        }
+        
+        .follow-btn.following:hover {
+            background: #b91c1c;
+        }
 
         .route-selector {
             background: #f8f9fa;
@@ -310,23 +340,58 @@
         #fileInput {
             display: none;
         }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .toggle-arrow {
+            font-size: 12px;
+            color: #666;
+            transition: transform 0.2s ease;
+        }
+        
+        .toggle-arrow.collapsed {
+            transform: rotate(-90deg);
+        }
+        
+        .collapsible-content {
+            transition: max-height 0.3s ease, opacity 0.2s ease;
+            overflow: hidden;
+        }
+        
+        .collapsible-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
     </style>
 </head>
 <body>
     <div id="map"></div>
     
     <div class="info-panel">
-        <h2>🚂 Live Route Tracker</h2>
+        <h2><span class="status-indicator" id="statusIndicator"></span>Tracking</h2>
         
-        <div class="info-item" style="margin-bottom: 15px;">
-            <span class="status-indicator" id="statusIndicator"></span>
-            <span id="connectionStatus">Connecting...</span>
+        <div class="info-item" style="margin-bottom: 15px; display: none;" id="connectionStatusItem">
+            <span id="connectionStatus">Lost Connection</span>
         </div>
 
         <div class="route-selector">
             <input type="file" id="fileInput" accept=".json" onchange="handleFileSelect(event)">
             <button class="browse-btn" id="browseBtn" onclick="document.getElementById('fileInput').click()">📁 Select Route</button>
             <div class="status-message" id="routeStatusMessage"></div>
+        </div>
+
+        <div class="info-group">
+            <h3 id="routeName">Loading...</h3>
+            <div class="info-item" style="display: none;">
+                <span class="info-label">Trip Duration:</span>
+                <span class="info-value" id="routeDuration">-</span>
+            </div>
         </div>
 
         <div class="timetable-display" id="timetableDisplay" style="display: none;">
@@ -338,22 +403,6 @@
             </div>
         </div>
         
-        <div class="info-group">
-            <h3 id="routeName">Loading...</h3>
-            <div class="info-item" style="display: none;">
-                <span class="info-label">Duration:</span>
-                <span class="info-value" id="routeDuration">-</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Total Points:</span>
-                <span class="info-value" id="totalPoints">-</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Markers:</span>
-                <span class="info-value" id="totalMarkers">-</span>
-            </div>
-        </div>
-
         <div class="info-group">
             <h3>Train Status</h3>
             <div class="info-item">
@@ -369,20 +418,7 @@
                 <span class="info-value" style="font-size: 11px;">
                     <div>Lat: <span id="currentLat">-</span></div>
                     <div>Lng: <span id="currentLng">-</span></div>
-                    <button class="copy-position-btn" id="copyPositionBtn" onclick="copyCurrentPosition()">Copy</button>
                 </span>
-            </div>
-        </div>
-
-        <div class="info-group">
-            <h3>Coordinates</h3>
-            <div class="info-item" style="flex-direction: column; align-items: flex-start;">
-                <span class="info-label" style="margin-bottom: 5px;">Click map or marker to capture</span>
-                <div class="coords-display" id="coordsDisplay">No coordinates selected</div>
-                <div>
-                    <button class="copy-coords-btn" id="copyBtn" style="display: none;">Copy</button>
-                    <button class="clear-coords-btn" id="clearBtn" style="display: none;" onclick="clearCoordinates()">Clear</button>
-                </div>
             </div>
         </div>
 
@@ -397,17 +433,10 @@
                 <span>Timetable Stations</span>
             </div>
             <div class="legend-item">
-                <div class="legend-color" style="background: #ff6b6b;"></div>
-                <span>Other Stations</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #4ecdc4;"></div>
-                <span>Other Markers</span>
-            </div>
-            <div class="legend-item">
                 <div class="legend-color" style="background: #ffa500;"></div>
                 <span>Live Train Position</span>
             </div>
+            <button class="follow-btn" id="followBtn" onclick="toggleFollowTrain()" title="Click to follow train position">Follow Train</button>
         </div>
     </div>
 
@@ -422,9 +451,23 @@
         });
 
         // Add OpenStreetMap tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // (Removed duplicate default OSM layer to avoid conflict with selector)
+
+        // Add tile layers for selector
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
             maxZoom: 19
+        });
+        const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles © Esri',
+            maxZoom: 19
+        });
+        // Set default layer
+        osm.addTo(map);
+        // Layer control
+        L.control.layers({
+            'Geographic': osm,
+            'Satellite': satellite
         }).addTo(map);
 
         // Map layers
@@ -435,6 +478,7 @@
         let trainMarker = null;
         let routeData = null;
         let firstPosition = true;
+        let isFollowingTrain = false; // Track if we're following the train
 
         // Direction mapping
         const directionMap = {
@@ -448,6 +492,34 @@
          * Input: "1Y08 Northampton - London Euston 0705 0044"
          * Output: { name: "1Y08 Northampton - London Euston", duration: "44 minutes" }
          */
+        
+        // Function to toggle following the train
+        function toggleFollowTrain() {
+            const followBtn = document.getElementById('followBtn');
+            
+            isFollowingTrain = !isFollowingTrain;
+            
+            if (isFollowingTrain) {
+                followBtn.textContent = 'Stop Following';
+                followBtn.classList.add('following');
+                followBtn.title = 'Click to stop following train position';
+                
+                // If we have a current train position, center on it immediately
+                if (trainMarker) {
+                    const pos = trainMarker.getLatLng();
+                    map.setView([pos.lat, pos.lng], map.getZoom());
+                }
+                
+                console.log('Started following train');
+            } else {
+                followBtn.textContent = 'Follow Train';
+                followBtn.classList.remove('following');
+                followBtn.title = 'Click to follow train position';
+                
+                console.log('Stopped following train');
+            }
+        }
+        
         function updateCoordinates(lng, lat) {
             const coordsDisplay = document.getElementById('coordsDisplay');
             const copyBtn = document.getElementById('copyBtn');
@@ -473,6 +545,22 @@
                     }, 1500);
                 });
             };
+        }
+
+        // Function to toggle collapsible sections
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            const arrow = document.getElementById(sectionId.replace('Section', 'Arrow'));
+            
+            if (section.classList.contains('collapsed')) {
+                section.classList.remove('collapsed');
+                arrow.classList.remove('collapsed');
+                section.style.maxHeight = section.scrollHeight + 'px';
+            } else {
+                section.classList.add('collapsed');
+                arrow.classList.add('collapsed');
+                section.style.maxHeight = '0px';
+            }
         }
 
         function clearCoordinates() {
@@ -673,8 +761,6 @@
                 document.getElementById('routeDuration').textContent = parsed.duration;
                 document.getElementById('routeDuration').parentElement.style.display = 'flex';
             }
-            document.getElementById('totalPoints').textContent = (data.totalPoints || 0).toLocaleString();
-            document.getElementById('totalMarkers').textContent = data.totalMarkers || 0;
 
             // Draw route polyline
             const coordinates = data.coordinates.map(coord => [coord.latitude, coord.longitude]);
@@ -715,14 +801,12 @@
                                 marker.stationName;
                 const isTimetableStation = marker.isTimetableStation === true;
                 
-                let markerColor;
-                if (isTimetableStation) {
-                    markerColor = '#00cc66'; // Green for timetable stations
-                } else if (isStation) {
-                    markerColor = '#ff6b6b'; // Red for other stations
-                } else {
-                    markerColor = '#4ecdc4'; // Cyan for other markers
+                // Only show timetable stations, skip all other markers
+                if (!isTimetableStation) {
+                    return;
                 }
+                
+                let markerColor = '#00cc66'; // Green for timetable stations
 
                 const mapMarker = L.circleMarker([lat, lng], {
                     radius: 6,
@@ -747,14 +831,15 @@
 
         eventSource.onopen = () => {
             console.log('Connected to live stream');
-            document.getElementById('connectionStatus').textContent = 'Connected';
             document.getElementById('statusIndicator').className = 'status-indicator status-connected';
+            document.getElementById('connectionStatusItem').style.display = 'none';
         };
 
         eventSource.onerror = () => {
             console.log('Connection lost');
-            document.getElementById('connectionStatus').textContent = 'Disconnected';
-            document.getElementById('statusIndicator').className = 'status-indicator status-disconnected';
+            document.getElementById('statusIndicator').className = 'status-indicator status-lost';
+            document.getElementById('connectionStatus').textContent = 'Lost Connection';
+            document.getElementById('connectionStatusItem').style.display = 'flex';
         };
 
         eventSource.onmessage = (event) => {
@@ -813,12 +898,12 @@
                     trainMarker = L.marker([lat, lng], { icon: trainIcon })
                         .bindPopup('<strong>🚂 Your Train</strong>')
                         .addTo(map);
-                    
-                    // Only pan to train on first position
-                    if (firstPosition) {
-                        map.panTo([lat, lng]);
-                        firstPosition = false;
-                    }
+                }
+                
+                // Center map on train position (first time or if following)
+                if (firstPosition || isFollowingTrain) {
+                    map.setView([lat, lng], firstPosition ? 15 : map.getZoom());
+                    firstPosition = false;
                 }
             }
         };

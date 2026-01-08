@@ -48,8 +48,11 @@ const stationMappings = loadStationNameMappings();
 async function extractTextFromImage(imagePath) {
   console.log('Processing image: ' + imagePath);
   try {
-    // First pass - standard OCR
+    // First pass - standard OCR with font-optimized settings
     const result = await Tesseract.recognize(imagePath, 'eng', {
+      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789:+-()& []',
+      tessedit_pageseg_mode: Tesseract.PSM.AUTO,
+      preserve_interword_spaces: '1',
       logger: m => {
         if (m.status === 'recognizing text') {
           console.log('Progress: ' + Math.round(m.progress * 100) + '%');
@@ -57,22 +60,34 @@ async function extractTextFromImage(imagePath) {
       }
     });
     
-    // Second pass - with different settings to capture colored/faint text
-    console.log('Second pass for additional text...');
+    // Second pass - for sparse/small text (like service numbers)
+    console.log('Second pass for sparse text...');
     const result2 = await Tesseract.recognize(imagePath, 'eng', {
-      tessedit_pageseg_mode: Tesseract.PSM.SPARSE_TEXT
+      tessedit_pageseg_mode: Tesseract.PSM.SPARSE_TEXT,
+      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789:+-()& []',
+      user_defined_dpi: '300'
     });
     
-    // Combine both results
-    let combinedText = result.data.text;
-    const lines1 = new Set(result.data.text.split('\n').map(l => l.trim()).filter(l => l.length > 0));
-    const lines2 = result2.data.text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    // Third pass - for single text line (good for service names)
+    console.log('Third pass for single line text...');
+    const result3 = await Tesseract.recognize(imagePath, 'eng', {
+      tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE,
+      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789:+-()& []'
+    });
     
-    // Add lines from second pass that aren't in first pass
-    lines2.forEach(line => {
-      if (!lines1.has(line) && line.length > 0) {
-        combinedText += '\n' + line;
-      }
+    // Combine all results intelligently
+    let combinedText = result.data.text;
+    const allLines = new Set(result.data.text.split('\n').map(l => l.trim()).filter(l => l.length > 0));
+    
+    // Add unique lines from other passes
+    [result2.data.text, result3.data.text].forEach(text => {
+      const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      lines.forEach(line => {
+        if (!allLines.has(line) && line.length > 0) {
+          combinedText += '\n' + line;
+          allLines.add(line);
+        }
+      });
     });
     
     return combinedText;
