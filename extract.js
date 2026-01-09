@@ -1,11 +1,11 @@
 const Tesseract = require('tesseract.js');
+const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
 const IMAGE_DIR = './timetable_images';
 const OUTPUT_TXT = './timetable_formatted.txt';
 const OUTPUT_CSV_DIR = './formats/csv';
-const OUTPUT_HUD_DIR = './formats/hud';
 const OUTPUT_THIRDRAILS_DIR = './formats/thirdrails';
 const OUTPUT_UNPROCESSED_DIR = './unprocessed_routes';
 const STATION_NAMES_DIR = './station_names';
@@ -45,13 +45,256 @@ function getMappedStationName(stationMappings, destinationName) {
 // Load mappings at startup
 const stationMappings = loadStationNameMappings();
 
-async function extractTextFromImage(imagePath) {
-  console.log('Processing image: ' + imagePath);
+/**
+ * Detect and split image into green section (WAIT FOR SERVICE) and blue section (timetable)
+ * Returns { greenBuffer, blueBuffer } - either can be null if not detected
+ */
+async function splitGreenAndBlueSection(imagePath) {
+  const image = sharp(imagePath);
+  const { data, info } = await image.raw().toBuffer({ resolveWithObject: true });
+  const { width, height, channels } = info;
+  
+  // Analyze each row to find green-dominant rows
+  // Green section typically has: high green, lower red/blue, or specific green tones
+  const rowIsGreen = [];
+  
+  for (let y = 0; y < height; y++) {
+    let greenPixelCount = 0;
+    let totalPixels = 0;
+    
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * channels;
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      
+      // Detect green-ish colors (green channel significantly higher than red, or specific green tones)
+      // Also detect dark backgrounds that might be part of green section
+      const isGreenish = (g > r + 20 && g > b) || // Green dominant
+                         (g > 100 && g > r && b < g) || // Light green
+                         (r < 80 && g > 80 && b < 80) || // Pure green area
+                         (r < 50 && g < 80 && b < 50); // Dark green/black area at top
+      
+      if (isGreenish) {
+        greenPixelCount++;
+      }
+      totalPixels++;
+    }
+    
+    // If more than 40% of the row is green-ish, consider it part of green section
+    rowIsGreen.push(greenPixelCount / totalPixels > 0.4);
+  }
+  
+  // Find the boundary - where green section ends
+  // Look for transition from green to non-green (with some tolerance for noise)
+  let greenEndRow = 0;
+  let consecutiveNonGreen = 0;
+  const TRANSITION_THRESHOLD = 5; // Need 5 consecutive non-green rows to confirm transition
+  
+  for (let y = 0; y < height; y++) {
+    if (rowIsGreen[y]) {
+      greenEndRow = y;
+      consecutiveNonGreen = 0;
+    } else {
+      consecutiveNonGreen++;
+      if (consecutiveNonGreen >= TRANSITION_THRESHOLD && greenEndRow > 0) {
+        break;
+      }
+    }
+  }
+  
+  // Add a small margin to ensure we capture all of the green section
+  greenEndRow = Math.min(greenEndRow + 5, height - 1);
+  
+  console.log(`  Detected green section: rows 0-${greenEndRow} of ${height}`);
+  
+  // If green section is too small or too large, return null (no split)
+  if (greenEndRow < 20 || greenEndRow > height - 20) {
+    console.log('  No clear green/blue split detected, processing as single image');
+    return { greenBuffer: null, blueBuffer: null };
+  }
+  
+  // Split the image
+  const greenBuffer = await sharp(imagePath)
+    .extract({ left: 0, top: 0, width: width, height: greenEndRow + 1 })
+    .png()
+    .toBuffer();
+  
+  const blueBuffer = await sharp(imagePath)
+    .extract({ left: 0, top: greenEndRow + 1, width: width, height: height - greenEndRow - 1 })
+    .png()
+    .toBuffer();
+  
+  return { greenBuffer, blueBuffer };
+}
+
+/**
+ * Apply maximum quality preprocessing for better OCR
+ * @param {boolean} invert - If true, invert the image for light text on dark backgrounds
+ */
+async function qualityPreprocess(imagePath, invert = false) {
+  console.log('Applying quality preprocessing...' + (invert ? ' (inverted)' : ''));
+  const image = sharp(imagePath);
+  const metadata = await image.metadata();
+  
+  // Step 1: Upscale 4x with high-quality interpolation
+  console.log('  - Upscaling 4x...');
+  let processed = image
+    .resize(metadata.width * 4, metadata.height * 4, { kernel: 'lanczos3' });
+  
+  // Step 2: Convert to grayscale
+  console.log('  - Converting to grayscale...');
+  processed = processed.grayscale();
+  
+  // Step 3: Normalize contrast (stretch histogram)
+  console.log('  - Normalizing contrast...');
+  processed = processed.normalize();
+  
+  // Step 4: Apply sharpening
+  console.log('  - Sharpening...');
+  processed = processed.sharpen({ sigma: 1.5, m1: 1.5, m2: 0.5 });
+  
+  // Step 5: Apply median filter to reduce noise
+  console.log('  - Reducing noise...');
+  processed = processed.median(3);
+  
+  // Step 6: Apply threshold to get pure black and white
+  console.log('  - Applying threshold for pure B&W...');
+  const { data: grayData, info: grayInfo } = await processed.raw().toBuffer({ resolveWithObject: true });
+  
+  const bwData = Buffer.alloc(grayData.length);
+  const THRESHOLD = 128;
+  
+  for (let i = 0; i < grayData.length; i++) {
+    if (invert) {
+      // Inverted: light pixels become black (text), dark pixels become white (background)
+      bwData[i] = grayData[i] >= THRESHOLD ? 0 : 255;
+    } else {
+      // Normal: dark pixels become black (text), light pixels become white (background)
+      bwData[i] = grayData[i] < THRESHOLD ? 0 : 255;
+    }
+  }
+  
+  // Step 7: Thicken text slightly (1px dilation)
+  console.log('  - Thickening text...');
+  const width = grayInfo.width;
+  const height = grayInfo.height;
+  const thickenedData = Buffer.from(bwData);
+  
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = y * width + x;
+      if (bwData[idx] === 0) {
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+              thickenedData[ny * width + nx] = 0;
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  const qualityImage = sharp(thickenedData, {
+    raw: {
+      width: grayInfo.width,
+      height: grayInfo.height,
+      channels: 1
+    }
+  });
+  
+  return qualityImage.png().toBuffer();
+}
+
+/**
+ * Apply quality preprocessing to a buffer instead of file path
+ * @param {Buffer} inputBuffer - PNG buffer to process
+ * @param {boolean} invert - If true, invert for light text on dark backgrounds
+ */
+async function qualityPreprocessBuffer(inputBuffer, invert = false) {
+  console.log('Applying quality preprocessing to buffer...' + (invert ? ' (inverted)' : ''));
+  const image = sharp(inputBuffer);
+  const metadata = await image.metadata();
+  
+  // Step 1: Upscale 4x with high-quality interpolation
+  let processed = image
+    .resize(metadata.width * 4, metadata.height * 4, { kernel: 'lanczos3' });
+  
+  // Step 2: Convert to grayscale
+  processed = processed.grayscale();
+  
+  // Step 3: Normalize contrast (stretch histogram)
+  processed = processed.normalize();
+  
+  // Step 4: Apply sharpening
+  processed = processed.sharpen({ sigma: 1.5, m1: 1.5, m2: 0.5 });
+  
+  // Step 5: Apply median filter to reduce noise
+  processed = processed.median(3);
+  
+  // Step 6: Apply threshold to get pure black and white
+  const { data: grayData, info: grayInfo } = await processed.raw().toBuffer({ resolveWithObject: true });
+  
+  const bwData = Buffer.alloc(grayData.length);
+  const THRESHOLD = 128;
+  
+  for (let i = 0; i < grayData.length; i++) {
+    if (invert) {
+      bwData[i] = grayData[i] >= THRESHOLD ? 0 : 255;
+    } else {
+      bwData[i] = grayData[i] < THRESHOLD ? 0 : 255;
+    }
+  }
+  
+  // Step 7: Thicken text slightly (1px dilation)
+  const width = grayInfo.width;
+  const height = grayInfo.height;
+  const thickenedData = Buffer.from(bwData);
+  
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = y * width + x;
+      if (bwData[idx] === 0) {
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+              thickenedData[ny * width + nx] = 0;
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  const qualityImage = sharp(thickenedData, {
+    raw: {
+      width: grayInfo.width,
+      height: grayInfo.height,
+      channels: 1
+    }
+  });
+  
+  return qualityImage.png().toBuffer();
+}
+
+/**
+ * Extract service name from the first image (simple preprocessing, no inversion)
+ */
+async function extractServiceName(imagePath) {
+  console.log('Processing SERVICE NAME image: ' + imagePath);
   try {
-    // First pass - standard OCR with font-optimized settings
-    const result = await Tesseract.recognize(imagePath, 'eng', {
+    // Use normal preprocessing only - service name is typically dark text on light background
+    let imageInput = await qualityPreprocess(imagePath, false);
+    
+    // Single pass with SINGLE_LINE mode - optimized for service name
+    const result = await Tesseract.recognize(imageInput, 'eng', {
       tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789:+-()& []',
-      tessedit_pageseg_mode: Tesseract.PSM.AUTO,
+      tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE,
       preserve_interword_spaces: '1',
       logger: m => {
         if (m.status === 'recognizing text') {
@@ -60,41 +303,120 @@ async function extractTextFromImage(imagePath) {
       }
     });
     
-    // Second pass - for sparse/small text (like service numbers)
-    console.log('Second pass for sparse text...');
-    const result2 = await Tesseract.recognize(imagePath, 'eng', {
-      tessedit_pageseg_mode: Tesseract.PSM.SPARSE_TEXT,
-      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789:+-()& []',
-      user_defined_dpi: '300'
-    });
+    return result.data.text;
+  } catch (error) {
+    console.error('Error processing service name ' + imagePath + ':', error);
+    return null;
+  }
+}
+
+/**
+ * Extract timetable data from images with mixed backgrounds
+ * Automatically splits green section (WAIT FOR SERVICE) from blue section (timetable)
+ * (white text on green background + black text on blue/light background)
+ */
+async function extractTimetableText(imagePath) {
+  console.log('Processing TIMETABLE image: ' + imagePath);
+  try {
+    // Try to split the image into green and blue sections
+    const { greenBuffer, blueBuffer } = await splitGreenAndBlueSection(imagePath);
     
-    // Third pass - for single text line (good for service names)
-    console.log('Third pass for single line text...');
-    const result3 = await Tesseract.recognize(imagePath, 'eng', {
-      tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE,
-      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789:+-()& []'
-    });
+    let greenText = '';
+    let blueText = '';
     
-    // Combine all results intelligently
-    let combinedText = result.data.text;
-    const allLines = new Set(result.data.text.split('\n').map(l => l.trim()).filter(l => l.length > 0));
-    
-    // Add unique lines from other passes
-    [result2.data.text, result3.data.text].forEach(text => {
-      const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-      lines.forEach(line => {
+    if (greenBuffer && blueBuffer) {
+      // Process green section with inverted preprocessing (light text on dark background)
+      console.log('Processing GREEN section (inverted)...');
+      const greenInput = await qualityPreprocessBuffer(greenBuffer, true);
+      const greenResult = await Tesseract.recognize(greenInput, 'eng', {
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789:+-()& []',
+        tessedit_pageseg_mode: Tesseract.PSM.AUTO,
+        preserve_interword_spaces: '1',
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            console.log('Green section progress: ' + Math.round(m.progress * 100) + '%');
+          }
+        }
+      });
+      greenText = greenResult.data.text;
+      
+      // Process blue section with normal preprocessing (dark text on light background)
+      console.log('Processing BLUE section (normal)...');
+      const blueInput = await qualityPreprocessBuffer(blueBuffer, false);
+      const blueResult = await Tesseract.recognize(blueInput, 'eng', {
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789:+-()& []',
+        tessedit_pageseg_mode: Tesseract.PSM.AUTO,
+        preserve_interword_spaces: '1',
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            console.log('Blue section progress: ' + Math.round(m.progress * 100) + '%');
+          }
+        }
+      });
+      blueText = blueResult.data.text;
+      
+      // Combine: green section first (WAIT FOR SERVICE), then blue section
+      return greenText.trim() + '\n' + blueText.trim();
+    } else {
+      // Fallback: process entire image with both normal and inverted preprocessing
+      console.log('Using fallback dual-pass processing...');
+      
+      // Normal preprocessing for dark text on light background (blue section)
+      let imageInput = await qualityPreprocess(imagePath, false);
+      
+      // First pass - standard OCR
+      const result = await Tesseract.recognize(imageInput, 'eng', {
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789:+-()& []',
+        tessedit_pageseg_mode: Tesseract.PSM.AUTO,
+        preserve_interword_spaces: '1',
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            console.log('Progress: ' + Math.round(m.progress * 100) + '%');
+          }
+        }
+      });
+      
+      // Second pass - inverted preprocessing for light text on dark background (green section)
+      console.log('Second pass with inverted preprocessing (for green sections)...');
+      const invertedInput = await qualityPreprocess(imagePath, true);
+      const result2 = await Tesseract.recognize(invertedInput, 'eng', {
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789:+-()& []',
+        tessedit_pageseg_mode: Tesseract.PSM.AUTO,
+        preserve_interword_spaces: '1'
+      });
+      
+      // Combine results - prioritize inverted results for WAIT FOR SERVICE
+      let combinedText = result.data.text;
+      const allLines = new Set(result.data.text.split('\n').map(l => l.trim()).filter(l => l.length > 0));
+      
+      // Add unique lines from inverted pass
+      const invertedLines = result2.data.text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      invertedLines.forEach(line => {
         if (!allLines.has(line) && line.length > 0) {
-          combinedText += '\n' + line;
+          // Prepend WAIT FOR SERVICE lines to ensure they appear first
+          if (line.includes('WAIT FOR SERVICE')) {
+            combinedText = line + '\n' + combinedText;
+          } else {
+            combinedText += '\n' + line;
+          }
           allLines.add(line);
         }
       });
-    });
-    
-    return combinedText;
+      
+      return combinedText;
+    }
   } catch (error) {
-    console.error('Error processing ' + imagePath + ':', error);
+    console.error('Error processing timetable ' + imagePath + ':', error);
     return null;
   }
+}
+
+/**
+ * Legacy function - kept for compatibility, now routes to appropriate specialized function
+ */
+async function extractTextFromImage(imagePath) {
+  // Default to timetable extraction
+  return extractTimetableText(imagePath);
 }
 
 function parseTrainTimetable(text) {
@@ -137,6 +459,11 @@ function parseTrainTimetable(text) {
       const times = parts.match(/([+-]?\d{2}:\d{2}:\d{2})/g) || [];
       const arrival = times[0] ? times[0].replace(/[+-]/g, '') : '';
       rows.push({ action: 'STOP', location, platform, scheduledTime: '', arrival, departure: '' });
+    } else if (trimmedLine.includes('UNLOAD PASSENGERS')) {
+      // UNLOAD PASSENGERS is the final stop - usually has no time or just a dash
+      const times = trimmedLine.match(/([+-]?\d{2}:\d{2}:\d{2})/g) || [];
+      const time = times[0] ? times[0].replace(/[+-]/g, '') : '';
+      rows.push({ action: 'UNLOAD PASSENGERS', location: '', platform: '', scheduledTime: '', arrival: '', departure: time });
     } else if (trimmedLine.includes('LOAD PASSENGERS')) {
       const times = trimmedLine.match(/([+-]?\d{2}:\d{2}:\d{2})/g) || [];
       const time = times[0] ? times[0].replace(/[+-]/g, '') : '';
@@ -315,105 +642,6 @@ function writeToCSVSimple(data, serviceNames, extraData) {
   }
   fs.writeFileSync(outputFile, csvLines.join('\n'));
   console.log('ThirdRails CSV created: ' + outputFile);
-}
-
-function writeToHUD(data, serviceNames, extraData) {
-  if (!fs.existsSync(OUTPUT_HUD_DIR)) {
-    fs.mkdirSync(OUTPUT_HUD_DIR, { recursive: true });
-  }
-  
-  let filename = 'timetable_hud.csv';
-  
-  if (serviceNames.length > 0) {
-    let fullService = serviceNames[0];
-    // Remove unwanted characters but preserve ' & ' (ampersand with spaces)
-    fullService = fullService.replace(/[\[\]\(\)%¥£€$@#*!~`^{}|]/g, '').replace(/&(?! )/g, '').replace(/(?<! )&/g, '').trim();
-    // Remove colon and replace other filesystem-unsafe characters with hyphen
-    const safeFilename = fullService.replace(/:/g, '').replace(/[<>"/\\|?*]/g, '-');
-    filename = safeFilename + '.csv';
-  }
-  
-  const outputFile = path.join(OUTPUT_HUD_DIR, filename);
-  
-  const csvLines = [];
-  csvLines.push('Destination,Arrival,Departure,Platform,api_name');
-  
-  // Find the first WAIT FOR SERVICE and first LOAD PASSENGERS for the initial line
-  let firstArrival = '';
-  let firstDeparture = '';
-  let startIndex = 0;
-  
-  for (let i = 0; i < data.length; i++) {
-    if (data[i].action === 'WAIT FOR SERVICE' && !firstArrival) {
-      firstArrival = data[i].arrival || '';
-      // Don't use departure from WAIT FOR SERVICE for HUD format
-      startIndex = i + 1;
-    } else if (data[i].action === 'LOAD PASSENGERS' && firstArrival && !firstDeparture) {
-      firstDeparture = data[i].departure || '';
-      startIndex = i + 1;
-      break;
-    }
-  }
-  
-  // If no LOAD PASSENGERS found after WAIT FOR SERVICE, use arrival as departure
-  if (firstArrival && !firstDeparture) {
-    firstDeparture = firstArrival;
-  }
-  
-  // Add first line with optional destination/platform from command line args
-  if (firstArrival || firstDeparture) {
-    const firstDestination = extraData && extraData.firstDestination ? extraData.firstDestination : '';
-    const firstPlatform = extraData && extraData.firstPlatform ? extraData.firstPlatform : '';
-    const mappedDestination = getMappedStationName(stationMappings, firstDestination);
-    const apiName = mappedDestination && firstPlatform ? mappedDestination + ' ' + firstPlatform : '';
-    
-    const firstLine = [
-      firstDestination,
-      firstArrival,
-      firstDeparture,
-      firstPlatform,
-      apiName
-    ].map(field => {
-      if (field.includes(',') || field.includes('"') || field.includes('\n')) {
-        return '"' + field.replace(/"/g, '""') + '"';
-      }
-      return field;
-    }).join(',');
-    csvLines.push(firstLine);
-  }
-  
-  // Process remaining entries - pair each STOP with its following LOAD PASSENGERS
-  for (let i = startIndex; i < data.length; i++) {
-    const row = data[i];
-    if (row.action === 'STOP') {
-      let departure = '';
-      // Look for the next LOAD PASSENGERS
-      if (i + 1 < data.length && data[i + 1].action === 'LOAD PASSENGERS') {
-        departure = data[i + 1].departure || '';
-      }
-      
-      const destination = row.location || '';
-      const platform = row.platform || '';
-      const mappedDestination = getMappedStationName(stationMappings, destination);
-      const apiName = mappedDestination && platform ? mappedDestination + ' ' + platform : '';
-      
-      const line = [
-        destination,
-        row.arrival || '',
-        departure,
-        platform,
-        apiName
-      ].map(field => {
-        if (field.includes(',') || field.includes('"') || field.includes('\n')) {
-          return '"' + field.replace(/"/g, '""') + '"';
-        }
-        return field;
-      }).join(',');
-      csvLines.push(line);
-    }
-  }
-  fs.writeFileSync(outputFile, csvLines.join('\n'));
-  console.log('HUD CSV created: ' + outputFile);
 }
 
 function writeToJSONRouteSkeleton(data, serviceNames, extraData) {
@@ -597,12 +825,12 @@ async function main() {
   // Store first platform and destination for later use
   const extraData = { firstPlatform, firstDestination };
   
-  // Process first image for service name only
+  // Process first image for service name only (uses specialized function)
   console.log('\n' + '='.repeat(70));
   console.log('Processing image 1 (SERVICE NAME): ' + files[0]);
   console.log('='.repeat(70));
   const serviceImagePath = path.join(IMAGE_DIR, files[0]);
-  const serviceText = await extractTextFromImage(serviceImagePath);
+  const serviceText = await extractServiceName(serviceImagePath);
   if (serviceText) {
     allOCRText.push('='.repeat(70));
     allOCRText.push('File: ' + files[0] + ' (SERVICE NAME)');
@@ -617,14 +845,14 @@ async function main() {
     }
   }
   
-  // Process remaining images for timetable data
+  // Process remaining images for timetable data (uses specialized function for mixed backgrounds)
   for (let i = 1; i < files.length; i++) {
     const file = files[i];
     console.log('\n' + '='.repeat(70));
     console.log('Processing image ' + (i + 1) + ' of ' + files.length + ': ' + file);
     console.log('='.repeat(70));
     const imagePath = path.join(IMAGE_DIR, file);
-    const text = await extractTextFromImage(imagePath);
+    const text = await extractTimetableText(imagePath);
     if (text) {
       // Save raw OCR text
       allOCRText.push('='.repeat(70));
@@ -675,7 +903,6 @@ async function main() {
     const allServiceNames = serviceName ? [serviceName] : [];
     writeToCSV(dedupedData, allServiceNames, extraData);
     writeToCSVSimple(dedupedData, allServiceNames, extraData);
-    writeToHUD(dedupedData, allServiceNames, extraData);
     writeToJSONRouteSkeleton(dedupedData, allServiceNames, extraData);
     console.log('\n' + '='.repeat(70));
     console.log('FINAL COMBINED TIMETABLE');

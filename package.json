@@ -9,8 +9,8 @@
     "start_extract": "node extract.js"
   },
   "keywords": [
-    "tws5",
     "tsw5",
+    "tsw6",
     "dashboard",
     "hud",
     "train-simulator",
@@ -24,8 +24,9 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "tesseract.js": "^5.0.4",
+    "axios": "^1.13.2",
     "csv-writer": "^1.6.0",
-    "axios": "^1.13.2"
+    "sharp": "^0.34.5",
+    "tesseract.js": "^5.0.4"
   }
 }
